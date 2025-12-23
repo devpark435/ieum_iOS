@@ -17,7 +17,7 @@ class ViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = Colors.Gray.g50 // 배경색 설정 (Colors 사용)
+        view.backgroundColor = Colors.Gray.g50
         
         setupUI()
         setupLayout()
