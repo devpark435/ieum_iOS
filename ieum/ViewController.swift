@@ -6,14 +6,30 @@
 //
 
 import UIKit
+import SnapKit
+import Then
 
 class ViewController: UIViewController {
+    
+    // MARK: - UI Components
+    
+    // MARK: - Life Cycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .red
+        view.backgroundColor = Colors.Gray.g50 // 배경색 설정 (Colors 사용)
+        
+        setupUI()
+        setupLayout()
     }
-
-
+    
+    // MARK: - Setup
+    
+    private func setupUI() {
+        
+    }
+    
+    private func setupLayout() {
+        
+    }
 }
-
