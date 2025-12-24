@@ -46,9 +46,7 @@ class IeumButton: UIButton {
     }
     
     private func setupLayout() {
-        snp.makeConstraints {
-            $0.height.equalTo(52)
-        }
+        // 내부 높이 제약조건 제거 (외부에서 유연하게 설정 가능하도록)
     }
     
     // MARK: - Configuration Methods

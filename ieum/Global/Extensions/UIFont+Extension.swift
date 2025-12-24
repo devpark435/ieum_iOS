@@ -11,7 +11,7 @@ extension UIFont {
         
         // MARK: - Button (btn)
         enum Btn {
-            static let large = style(size: 20, weight: .bold, lineHeight: nil)
+            static let large = style(size: 20, weight: .semibold, lineHeight: nil)
             static let medium = style(size: 17, weight: .bold, lineHeight: nil)
             static let small = style(size: 15, weight: .bold, lineHeight: nil)
         }
