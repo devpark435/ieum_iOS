@@ -148,8 +148,8 @@ class SignUpStep5ViewController: UIViewController {
     }
     
     private func navigateToNextStep() {
-        // Step 6 이동 로직
-        print("Step 5 완료 -> Step 6 이동")
+        let step6VC = SignUpStep6ViewController()
+        navigationController?.pushViewController(step6VC, animated: true)
     }
 }
 
