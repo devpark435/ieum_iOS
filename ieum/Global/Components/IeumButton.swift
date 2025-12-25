@@ -84,8 +84,11 @@ class IeumButton: UIButton {
         
         var style: Style?
         
+        // selected 상태 처리 추가
         if currentState.contains(.disabled) {
             style = styles[UIControl.State.disabled.rawValue]
+        } else if currentState.contains(.selected) {
+            style = styles[UIControl.State.selected.rawValue]
         } else if currentState.contains(.highlighted) {
             style = styles[UIControl.State.highlighted.rawValue]
         } else {
@@ -109,6 +112,10 @@ class IeumButton: UIButton {
     }
     
     override var isHighlighted: Bool {
+        didSet { updateAppearance() }
+    }
+    
+    override var isSelected: Bool {
         didSet { updateAppearance() }
     }
 }

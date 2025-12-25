@@ -101,6 +101,8 @@ class IeumInputView: UIView {
             countLabel.text = "0/\(maxCount)"
             countLabel.isHidden = false
         }
+        
+        updateCountLabel()
     }
     
     private func setupLayout() {
@@ -109,7 +111,7 @@ class IeumInputView: UIView {
         }
         
         containerView.snp.makeConstraints {
-            $0.height.equalTo(52)
+            $0.height.equalTo(74)
         }
         
         let rightPadding = (type == .default && maxCharacterCount == nil) ? 16 : 40
@@ -196,8 +198,24 @@ class IeumInputView: UIView {
     }
     
     @objc private func textFieldDidChange() {
-        guard let maxCount = maxCharacterCount, let text = textField.text else { return }
-        countLabel.text = "\(text.count)/\(maxCount)"
-        countLabel.textColor = text.count > maxCount ? Colors.Red.r500 : Colors.Gray.g400
+        updateCountLabel()
+    }
+    
+    private func updateCountLabel() {
+        guard let maxCount = maxCharacterCount else { return }
+        let text = textField.text ?? ""
+        
+        let currentCount = text.count
+        let countText = "\(currentCount)/\(maxCount)"
+        let attributedString = NSMutableAttributedString(string: countText)
+        
+        let slashIndex = countText.firstIndex(of: "/") ?? countText.endIndex
+        let slashRange = NSRange(slashIndex..<countText.endIndex, in: countText)
+        let countRange = NSRange(countText.startIndex..<slashIndex, in: countText)
+        
+        attributedString.addAttribute(.foregroundColor, value: Colors.Lime.l500, range: countRange)
+        attributedString.addAttribute(.foregroundColor, value: Colors.Gray.g300, range: slashRange)
+        
+        countLabel.attributedText = attributedString
     }
 }
