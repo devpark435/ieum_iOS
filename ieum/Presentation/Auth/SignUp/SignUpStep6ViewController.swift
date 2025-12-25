@@ -6,8 +6,8 @@ class SignUpStep6ViewController: UIViewController {
     
     // MARK: - UI Components
     
-    private let stepBadgeChip = IeumChip(title: "5/7", type: .static).then {
-        let text = "5/7"
+    private let stepBadgeChip = IeumChip(title: "5 / 7", type: .static).then {
+        let text = "5 / 7"
         let attributedString = NSMutableAttributedString(string: text)
         attributedString.addAttribute(.foregroundColor, value: Colors.white, range: NSRange(location: 0, length: 1))
         attributedString.addAttribute(.foregroundColor, value: Colors.white.withAlphaComponent(0.5), range: NSRange(location: 1, length: 2))
