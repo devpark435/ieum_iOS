@@ -134,6 +134,8 @@ class SignUpStep3ViewController: UIViewController {
     
     @objc private func didTapNext() {
         print("닉네임 입력 완료: \(nicknameInputView.textField.text ?? "")")
-        // 다음 단계 이동
+        
+        let step4VC = SignUpStep4ViewController()
+        navigationController?.pushViewController(step4VC, animated: true)
     }
 }
