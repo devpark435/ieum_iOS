@@ -6,8 +6,8 @@ class SignUpStep4ViewController: UIViewController {
     
     // MARK: - UI Components
     
-    private let stepBadgeChip = IeumChip(title: "3/7", type: .static).then {
-        let text = "3/7" // 이미지상 3/7
+    private let stepBadgeChip = IeumChip(title: "3 / 7", type: .static).then {
+        let text = "3 / 7"
         let attributedString = NSMutableAttributedString(string: text)
         attributedString.addAttribute(.foregroundColor, value: Colors.white, range: NSRange(location: 0, length: 1))
         attributedString.addAttribute(.foregroundColor, value: Colors.white.withAlphaComponent(0.5), range: NSRange(location: 1, length: 2))
@@ -44,12 +44,13 @@ class SignUpStep4ViewController: UIViewController {
         $0.setStyle(backgroundColor: Colors.Gray.g200, titleColor: Colors.Gray.g400, for: .normal) // 활성화 전 색상 (이미지 참고: 연한 회색)
         // 활성화 시 색상은 로직에서 변경
         $0.isEnabled = false
+        $0.addTarget(self, action: #selector(didTapNext), for: .touchUpInside) // 타겟 추가
     }
     
     // MARK: - Data
     
     private let diagnosisList = ["직장암", "대장암", "간이식", "기타"]
-    private var selectedDiagnosis: [String: String?] = [:] // [진단명: 병기(nil 가능)]
+    private var selectedDiagnosis: [String: String] = [:] // [진단명: 병기(없으면 "")]
     
     // MARK: - Life Cycle
     
@@ -148,7 +149,7 @@ class SignUpStep4ViewController: UIViewController {
             if title == "기타" || title == "간이식" {
                 // 병기 선택 불필요한 경우 바로 선택 처리
                 sender.isSelected = true
-                selectedDiagnosis[title] = nil // 병기 없음
+                selectedDiagnosis[title] = "" // 병기 없음 (빈 문자열 저장)
             } else {
                 // 병기 선택 바텀시트 노출
                 showStageSelection(for: title, button: sender)
@@ -180,8 +181,8 @@ class SignUpStep4ViewController: UIViewController {
         
         if count > 0 {
             attributedString.addAttribute(.foregroundColor, value: Colors.Lime.l500, range: countRange)
-            // 다음 버튼 활성화 스타일
-            nextButton.setStyle(backgroundColor: Colors.Primary.lightGreen, titleColor: Colors.Gray.g950, for: .normal)
+            // 다음 버튼 활성화 스타일 (Lime.l400)
+            nextButton.setStyle(backgroundColor: Colors.Lime.l400, titleColor: Colors.Gray.g950, for: .normal)
             nextButton.isEnabled = true
         } else {
             attributedString.addAttribute(.foregroundColor, value: Colors.Gray.g500, range: countRange) // 0일때 회색인지 라임인지 확인 필요 (아까는 라임이었음)
@@ -194,6 +195,11 @@ class SignUpStep4ViewController: UIViewController {
         }
         
         countLabel.attributedText = attributedString
+    }
+    
+    @objc private func didTapNext() {
+        let step5VC = SignUpStep5ViewController()
+        navigationController?.pushViewController(step5VC, animated: true)
     }
 }
 
