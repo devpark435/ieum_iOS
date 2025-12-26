@@ -304,7 +304,8 @@ class SignUpStep6ViewController: UIViewController {
     }
     
     private func navigateToNextStep() {
-        print("Step 6 완료 -> Step 7 이동")
+        let step7VC = SignUpStep7ViewController()
+        navigationController?.pushViewController(step7VC, animated: true)
     }
 }
 
