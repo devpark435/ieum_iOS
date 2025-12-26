@@ -1,8 +1,15 @@
 import UIKit
 import SnapKit
 import Then
+import Combine
 
 class SignUpCompleteViewController: UIViewController {
+    
+    // MARK: - Properties
+    
+    weak var coordinator: SignUpCoordinator?
+    private let viewModel = SignUpCompleteViewModel()
+    private var cancellables = Set<AnyCancellable>()
     
     // MARK: - UI Components
     
@@ -61,6 +68,7 @@ class SignUpCompleteViewController: UIViewController {
         setupUI()
         setupLayout()
         setupActions()
+        bindViewModel()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -119,30 +127,24 @@ class SignUpCompleteViewController: UIViewController {
         detailInfoButton.addTarget(self, action: #selector(didTapDetailInfo), for: .touchUpInside)
     }
     
+    // MARK: - Binding
+    
+    private func bindViewModel() {
+        viewModel.navigateToMain
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                self?.coordinator?.finish()
+            }
+            .store(in: &cancellables)
+    }
+    
     // MARK: - Actions
     
     @objc private func didTapStart() {
-        // TODO: 메인 화면 진입 전 필요한 초기화 작업 수행
-        transitionToMain()
+        viewModel.didTapStart.send()
     }
     
     @objc private func didTapDetailInfo() {
-        // TODO: 상세 정보 입력 화면으로 이동 (추후 구현)
-        print("상세 정보 입력하기 탭")
-        transitionToMain() // 임시로 메인 이동
-    }
-    
-    private func transitionToMain() {
-        // 임시로 뷰 컨트롤러 생성 (추후 MainTabBarController 등으로 교체)
-        let mainVC = ViewController()
-        
-        if let windowScene = view.window?.windowScene,
-           let delegate = windowScene.delegate as? SceneDelegate,
-           let window = delegate.window {
-            
-            UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve, animations: {
-                window.rootViewController = mainVC
-            }, completion: nil)
-        }
+        viewModel.didTapDetailInfo.send()
     }
 }

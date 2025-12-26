@@ -1,8 +1,16 @@
 import UIKit
 import SnapKit
 import Then
+import Combine
 
 class SignUpStep4ViewController: UIViewController {
+    
+    // MARK: - Properties
+    
+    weak var coordinator: SignUpCoordinator?
+    private let viewModel = SignUpStep4ViewModel()
+    private var cancellables = Set<AnyCancellable>()
+    private var diagnosisButtons: [String: IeumButton] = [:]
     
     // MARK: - UI Components
     
@@ -47,12 +55,6 @@ class SignUpStep4ViewController: UIViewController {
         $0.addTarget(self, action: #selector(didTapNext), for: .touchUpInside) // 타겟 추가
     }
     
-    // MARK: - Data
-    
-    // TODO: 서버에서 진단명 리스트 받아오기
-    private let diagnosisList = ["직장암", "대장암", "간이식", "기타"]
-    private var selectedDiagnosis: [String: String] = [:] // [진단명: 병기(없으면 "")]
-    
     // MARK: - Life Cycle
     
     override func viewDidLoad() {
@@ -61,6 +63,7 @@ class SignUpStep4ViewController: UIViewController {
         
         setupUI()
         setupLayout()
+        bindViewModel()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -75,8 +78,9 @@ class SignUpStep4ViewController: UIViewController {
         view.addSubview(titleLabel)
         view.addSubview(buttonStackView)
         
-        diagnosisList.forEach { name in
+        viewModel.diagnosisList.forEach { name in
             let button = createDiagnosisButton(title: name)
+            diagnosisButtons[name] = button
             buttonStackView.addArrangedSubview(button)
         }
         
@@ -135,72 +139,96 @@ class SignUpStep4ViewController: UIViewController {
         }
     }
     
+    // MARK: - Binding
+    
+    private func bindViewModel() {
+        viewModel.$countText
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] countText in
+                self?.updateCountLabel(text: countText)
+            }
+            .store(in: &cancellables)
+        
+        viewModel.$isNextButtonEnabled
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isEnabled in
+                guard let self = self else { return }
+                self.nextButton.isEnabled = isEnabled
+                if isEnabled {
+                    self.nextButton.setStyle(backgroundColor: Colors.Lime.l400, titleColor: Colors.Gray.g950, for: .normal)
+                } else {
+                    self.nextButton.setStyle(backgroundColor: Colors.Gray.g200, titleColor: Colors.Gray.g400, for: .normal)
+                }
+            }
+            .store(in: &cancellables)
+        
+        viewModel.$selectedDiagnosis
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] selectedDiagnosis in
+                self?.updateButtonStates(selectedDiagnosis: selectedDiagnosis)
+            }
+            .store(in: &cancellables)
+        
+        viewModel.showStageSelection
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] diagnosisName in
+                self?.showStageSelection(for: diagnosisName)
+            }
+            .store(in: &cancellables)
+        
+        viewModel.navigateToNext
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                self?.coordinator?.showStep5()
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func updateCountLabel(text: String) {
+        let count = viewModel.selectedCount
+        let attributedString = NSMutableAttributedString(string: text)
+        let countRange = (text as NSString).range(of: "\(count)")
+        attributedString.addAttribute(.foregroundColor, value: Colors.Lime.l500, range: countRange)
+        countLabel.attributedText = attributedString
+    }
+    
+    private func updateButtonStates(selectedDiagnosis: [String: String]) {
+        for (title, stage) in selectedDiagnosis {
+            if let button = diagnosisButtons[title] {
+                button.isSelected = true
+                if !stage.isEmpty {
+                    button.setBadge(text: stage)
+                } else {
+                    button.setBadge(text: nil)
+                }
+            }
+        }
+        
+        // 선택 해제된 버튼들 처리
+        for (title, button) in diagnosisButtons {
+            if !selectedDiagnosis.keys.contains(title) {
+                button.isSelected = false
+                button.setBadge(text: nil)
+            }
+        }
+    }
+    
+    private func showStageSelection(for diagnosisName: String) {
+        coordinator?.showStageSelection(cancerName: diagnosisName) { [weak self] stage in
+            guard let self = self else { return }
+            self.viewModel.selectDiagnosis(diagnosisName, stage: stage)
+        }
+    }
+    
     // MARK: - Actions
     
     @objc private func didTapDiagnosis(_ sender: IeumButton) {
         guard let title = sender.titleLabel?.text else { return }
-        
-        if sender.isSelected {
-            // 이미 선택된 상태 -> 해제
-            sender.isSelected = false
-            sender.setBadge(text: nil)
-            selectedDiagnosis.removeValue(forKey: title)
-        } else {
-            // 선택되지 않은 상태 -> 선택
-            if title == "기타" || title == "간이식" {
-                // 병기 선택 불필요한 경우 바로 선택 처리
-                sender.isSelected = true
-                selectedDiagnosis[title] = "" // 병기 없음 (빈 문자열 저장)
-            } else {
-                // 병기 선택 바텀시트 노출
-                showStageSelection(for: title, button: sender)
-            }
-        }
-        
-        updateBottomState()
-    }
-    
-    private func showStageSelection(for title: String, button: IeumButton) {
-        let stageVC = StageSelectionViewController(cancerName: title)
-        stageVC.onSelect = { [weak self] stage in
-            guard let self = self else { return }
-            button.isSelected = true
-            button.setBadge(text: stage)
-            self.selectedDiagnosis[title] = stage
-            self.updateBottomState()
-        }
-        present(stageVC, animated: true)
-    }
-    
-    private func updateBottomState() {
-        let count = selectedDiagnosis.count
-        
-        // 카운트 라벨 업데이트 (0개 -> 0 부분 라임색)
-        let countText = "\(count) 개 선택완료"
-        let attributedString = NSMutableAttributedString(string: countText)
-        let countRange = (countText as NSString).range(of: "\(count)")
-        
-        if count > 0 {
-            attributedString.addAttribute(.foregroundColor, value: Colors.Lime.l500, range: countRange)
-            // 다음 버튼 활성화 스타일 (Lime.l400)
-            nextButton.setStyle(backgroundColor: Colors.Lime.l400, titleColor: Colors.Gray.g950, for: .normal)
-            nextButton.isEnabled = true
-        } else {
-            attributedString.addAttribute(.foregroundColor, value: Colors.Gray.g500, range: countRange) // 0일때 회색인지 라임인지 확인 필요 (아까는 라임이었음)
-            // 라임으로 통일한다면:
-            attributedString.addAttribute(.foregroundColor, value: Colors.Lime.l500, range: countRange)
-            
-            // 다음 버튼 비활성화
-            nextButton.setStyle(backgroundColor: Colors.Gray.g200, titleColor: Colors.Gray.g400, for: .normal)
-            nextButton.isEnabled = false
-        }
-        
-        countLabel.attributedText = attributedString
+        viewModel.didTapDiagnosis.send(title)
     }
     
     @objc private func didTapNext() {
-        let step5VC = SignUpStep5ViewController()
-        navigationController?.pushViewController(step5VC, animated: true)
+        viewModel.didTapNext.send()
     }
 }
 

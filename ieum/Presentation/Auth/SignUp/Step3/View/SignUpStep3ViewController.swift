@@ -1,8 +1,15 @@
 import UIKit
 import SnapKit
 import Then
+import Combine
 
 class SignUpStep3ViewController: UIViewController {
+    
+    // MARK: - Properties
+    
+    weak var coordinator: SignUpCoordinator?
+    private let viewModel = SignUpStep3ViewModel()
+    private var cancellables = Set<AnyCancellable>()
     
     // MARK: - UI Components
     
@@ -48,6 +55,7 @@ class SignUpStep3ViewController: UIViewController {
         setupUI()
         setupLayout()
         setupActions()
+        bindViewModel()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -125,18 +133,30 @@ class SignUpStep3ViewController: UIViewController {
         nextButton.addTarget(self, action: #selector(didTapNext), for: .touchUpInside)
     }
     
+    // MARK: - Binding
+    
+    private func bindViewModel() {
+        viewModel.$isNextButtonEnabled
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.isEnabled, on: nextButton)
+            .store(in: &cancellables)
+        
+        viewModel.navigateToNext
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                self?.coordinator?.showStep4()
+            }
+            .store(in: &cancellables)
+    }
+    
     // MARK: - Actions
     
     @objc private func textDidChange() {
         let text = nicknameInputView.textField.text ?? ""
-        nextButton.isEnabled = !text.isEmpty
+        viewModel.nicknameText.send(text)
     }
     
     @objc private func didTapNext() {
-        // TODO: 닉네임 중복 확인 API 호출 필요
-        print("닉네임 입력 완료: \(nicknameInputView.textField.text ?? "")")
-        
-        let step4VC = SignUpStep4ViewController()
-        navigationController?.pushViewController(step4VC, animated: true)
+        viewModel.didTapNext.send()
     }
 }

@@ -1,8 +1,15 @@
 import UIKit
 import SnapKit
 import Then
+import Combine
 
 class SignUpStep6ViewController: UIViewController {
+    
+    // MARK: - Properties
+    
+    weak var coordinator: SignUpCoordinator?
+    private let viewModel = SignUpStep6ViewModel()
+    private var cancellables = Set<AnyCancellable>()
     
     // MARK: - UI Components
     
@@ -73,90 +80,16 @@ class SignUpStep6ViewController: UIViewController {
     
     // MARK: - Data
     
-    // TODO: 행정구역 데이터 API 연동 또는 로컬 데이터 고도화
-    private let cities = [
-        "서울특별시", "경기도", "부산광역시", "대구광역시",
-        "인천광역시", "광주광역시", "대전광역시", "울산광역시",
-        "세종특별자치시", "강원특별자치도", "충청북도", "충청남도",
-        "전북특별자치도", "전라남도", "경상북도", "경상남도", "제주특별자치도"
-    ]
+    private var cities: [String] {
+        return viewModel.cities
+    }
     
-    private let districts: [String: [String]] = [
-        "서울특별시": [
-            "강남구", "강동구", "강북구", "강서구", "관악구", "광진구", "구로구", "금천구",
-            "노원구", "도봉구", "동대문구", "동작구", "마포구", "서대문구", "서초구", "성동구",
-            "성북구", "송파구", "양천구", "영등포구", "용산구", "은평구", "종로구", "중구", "중랑구"
-        ],
-        "경기도": [
-            "수원시", "성남시", "안양시", "안산시", "용인시", "고양시", "평택시", "과천시",
-            "광명시", "광주시", "구리시", "군포시", "김포시", "남양주시", "동두천시", "부천시",
-            "시흥시", "안성시", "양주시", "오산시", "의정부시", "이천시", "파주시", "하남시",
-            "화성시", "여주시", "양평군", "가평군", "연천군", "포천시"
-        ],
-        "부산광역시": [
-            "강서구", "금정구", "기장군", "남구", "동구", "동래구", "부산진구", "북구",
-            "사상구", "사하구", "서구", "수영구", "연제구", "영도구", "중구", "해운대구"
-        ],
-        "대구광역시": [
-            "남구", "달서구", "동구", "북구", "서구", "수성구", "중구", "달성군", "군위군"
-        ],
-        "인천광역시": [
-            "강화군", "계양구", "남동구", "동구", "미추홀구", "부평구", "서구", "연수구", "옹진군", "중구"
-        ],
-        "광주광역시": [
-            "광산구", "남구", "동구", "북구", "서구"
-        ],
-        "대전광역시": [
-            "대덕구", "동구", "서구", "유성구", "중구"
-        ],
-        "울산광역시": [
-            "남구", "동구", "북구", "중구", "울주군"
-        ],
-        "세종특별자치시": [
-            "세종시"
-        ],
-        "강원특별자치도": [
-            "춘천시", "원주시", "강릉시", "동해시", "태백시", "속초시", "삼척시",
-            "홍천군", "횡성군", "영월군", "평창군", "정선군", "철원군", "화천군",
-            "양구군", "인제군", "고성군", "양양군"
-        ],
-        "충청북도": [
-            "청주시", "충주시", "제천시", "보은군", "옥천군", "영동군", "증평군",
-            "진천군", "괴산군", "음성군", "단양군"
-        ],
-        "충청남도": [
-            "천안시", "공주시", "보령시", "아산시", "서산시", "논산시", "계룡시", "당진시",
-            "금산군", "부여군", "서천군", "청양군", "홍성군", "예산군", "태안군"
-        ],
-        "전북특별자치도": [
-            "전주시", "군산시", "익산시", "정읍시", "남원시", "김제시",
-            "완주군", "진안군", "무주군", "장수군", "임실군", "순창군", "고창군", "부안군"
-        ],
-        "전라남도": [
-            "목포시", "여수시", "순천시", "나주시", "광양시",
-            "담양군", "곡성군", "구례군", "고흥군", "보성군", "화순군", "장흥군",
-            "강진군", "해남군", "영암군", "무안군", "함평군", "영광군", "장성군", "완도군", "진도군", "신안군"
-        ],
-        "경상북도": [
-            "포항시", "경주시", "김천시", "안동시", "구미시", "영주시", "영천시", "상주시", "문경시", "경산시",
-            "군위군", "의성군", "청송군", "영양군", "영덕군", "청도군", "고령군", "성주군",
-            "칠곡군", "예천군", "봉화군", "울진군", "울릉군"
-        ],
-        "경상남도": [
-            "창원시", "진주시", "통영시", "사천시", "김해시", "밀양시", "거제시", "양산시",
-            "의령군", "함안군", "창녕군", "고성군", "남해군", "하동군", "산청군", "함양군", "거창군", "합천군"
-        ],
-        "제주특별자치도": [
-            "제주시", "서귀포시"
-        ]
-    ]
-    
-    private var selectedCityIndex: Int? = 0 // 기본 서울 선택
-    private var selectedDistrictIndex: Int? = nil
+    private var districts: [String: [String]] {
+        return viewModel.districts
+    }
     
     private var currentDistricts: [String] {
-        guard let index = selectedCityIndex else { return [] }
-        return districts[cities[index]] ?? []
+        return viewModel.currentDistricts
     }
     
     // MARK: - Life Cycle
@@ -169,9 +102,9 @@ class SignUpStep6ViewController: UIViewController {
         setupLayout()
         setupTableView()
         setupActions()
+        bindViewModel()
         
         // 초기 선택 상태 (서울)
-        // 지연 실행을 통해 테이블뷰 로드 후 선택되도록 함
         DispatchQueue.main.async { [weak self] in
             self?.cityTableView.selectRow(at: IndexPath(row: 0, section: 0), animated: false, scrollPosition: .top)
         }
@@ -294,21 +227,50 @@ class SignUpStep6ViewController: UIViewController {
         nextButton.addTarget(self, action: #selector(didTapNext), for: .touchUpInside)
     }
     
+    // MARK: - Binding
+    
+    private func bindViewModel() {
+        viewModel.$selectedCityIndex
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] index in
+                guard let self = self, let index = index else { return }
+                self.cityTableView.selectRow(at: IndexPath(row: index, section: 0), animated: false, scrollPosition: .none)
+                self.districtTableView.reloadData()
+                if !self.currentDistricts.isEmpty {
+                    self.districtTableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: false)
+                }
+            }
+            .store(in: &cancellables)
+        
+        viewModel.$selectedDistrictIndex
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] index in
+                guard let self = self, let index = index else { return }
+                self.districtTableView.selectRow(at: IndexPath(row: index, section: 0), animated: false, scrollPosition: .none)
+            }
+            .store(in: &cancellables)
+        
+        viewModel.$isNextButtonEnabled
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.isEnabled, on: nextButton)
+            .store(in: &cancellables)
+        
+        viewModel.navigateToNext
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                self?.coordinator?.showStep7()
+            }
+            .store(in: &cancellables)
+    }
+    
     // MARK: - Actions
     
     @objc private func didTapSkip() {
-        // TODO: 거주지역 선택 건너뛰기 처리 (nil 전송 등)
-        navigateToNextStep()
+        viewModel.didTapSkip.send()
     }
     
     @objc private func didTapNext() {
-        // TODO: 선택된 지역 정보 저장
-        navigateToNextStep()
-    }
-    
-    private func navigateToNextStep() {
-        let step7VC = SignUpStep7ViewController()
-        navigationController?.pushViewController(step7VC, animated: true)
+        viewModel.didTapNext.send()
     }
 }
 
@@ -343,11 +305,11 @@ extension SignUpStep6ViewController: UITableViewDelegate, UITableViewDataSource 
     func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
         // 뷰가 로드될 때 선택 상태 복원 (특히 리로드 시 중요)
         if tableView == cityTableView {
-            if indexPath.row == selectedCityIndex {
+            if let selectedIndex = viewModel.selectedCityIndex, indexPath.row == selectedIndex {
                 tableView.selectRow(at: indexPath, animated: false, scrollPosition: .none)
             }
         } else {
-            if let selectedIndex = selectedDistrictIndex, indexPath.row == selectedIndex {
+            if let selectedIndex = viewModel.selectedDistrictIndex, indexPath.row == selectedIndex {
                 tableView.selectRow(at: indexPath, animated: false, scrollPosition: .none)
             }
         }
@@ -355,20 +317,9 @@ extension SignUpStep6ViewController: UITableViewDelegate, UITableViewDataSource 
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         if tableView == cityTableView {
-            selectedCityIndex = indexPath.row
-            selectedDistrictIndex = nil // 시/도 변경 시 구/군 초기화
-            nextButton.isEnabled = false
-            
-            // 데이터 갱신
-            districtTableView.reloadData()
-            
-            // 첫번째 항목으로 스크롤 이동
-            if !currentDistricts.isEmpty {
-                districtTableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: false)
-            }
+            viewModel.didSelectCity.send(indexPath.row)
         } else {
-            selectedDistrictIndex = indexPath.row
-            nextButton.isEnabled = true
+            viewModel.didSelectDistrict.send(indexPath.row)
         }
     }
     

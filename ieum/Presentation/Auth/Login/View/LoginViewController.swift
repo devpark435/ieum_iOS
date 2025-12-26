@@ -1,8 +1,15 @@
 import UIKit
 import SnapKit
 import Then
+import Combine
 
 class LoginViewController: UIViewController {
+    
+    // MARK: - Properties
+    
+    weak var coordinator: AuthCoordinator?
+    private let viewModel = LoginViewModel()
+    private var cancellables = Set<AnyCancellable>()
     
     // MARK: - UI Components
     
@@ -38,6 +45,12 @@ class LoginViewController: UIViewController {
         setupUI()
         setupLayout()
         setupActions()
+        bindViewModel()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(true, animated: animated)
     }
     
     // MARK: - Setup
@@ -82,17 +95,20 @@ class LoginViewController: UIViewController {
         kakaoLoginButton.addTarget(self, action: #selector(didTapKakaoLogin), for: .touchUpInside)
     }
     
+    // MARK: - Binding
+    
+    private func bindViewModel() {
+        viewModel.navigateToSignUp
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                self?.coordinator?.showSignUp()
+            }
+            .store(in: &cancellables)
+    }
+    
     // MARK: - Actions
     
     @objc private func didTapKakaoLogin() {
-        // TODO: 카카오 로그인 SDK 연동
-        print("카카오 로그인 버튼 탭")
-        
-        let step1VC = SignUpStep1ViewController()
-        let nav = UINavigationController(rootViewController: step1VC)
-        nav.modalPresentationStyle = .fullScreen
-        nav.setNavigationBarHidden(true, animated: false)
-        
-        present(nav, animated: true)
+        viewModel.didTapKakaoLogin.send()
     }
 }

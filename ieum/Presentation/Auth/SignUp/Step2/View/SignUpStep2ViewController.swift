@@ -1,8 +1,15 @@
 import UIKit
 import SnapKit
 import Then
+import Combine
 
 class SignUpStep2ViewController: UIViewController {
+    
+    // MARK: - Properties
+    
+    weak var coordinator: SignUpCoordinator?
+    private let viewModel = SignUpStep2ViewModel()
+    private var cancellables = Set<AnyCancellable>()
     
     // MARK: - UI Components
     
@@ -47,6 +54,7 @@ class SignUpStep2ViewController: UIViewController {
         setupUI()
         setupLayout()
         setupActions()
+        bindViewModel()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -101,28 +109,35 @@ class SignUpStep2ViewController: UIViewController {
         femaleButton.addTarget(self, action: #selector(didTapFemale), for: .touchUpInside)
     }
     
+    // MARK: - Binding
+    
+    private func bindViewModel() {
+        viewModel.$isMaleSelected
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.isSelected, on: maleButton)
+            .store(in: &cancellables)
+        
+        viewModel.$isFemaleSelected
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.isSelected, on: femaleButton)
+            .store(in: &cancellables)
+        
+        viewModel.navigateToNext
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                self?.coordinator?.showStep3()
+            }
+            .store(in: &cancellables)
+    }
+    
     // MARK: - Actions
     
     @objc private func didTapMale() {
-        updateSelection(isMale: true)
-        navigateToNextStep()
+        viewModel.didSelectMale.send()
     }
     
     @objc private func didTapFemale() {
-        updateSelection(isMale: false)
-        navigateToNextStep()
-    }
-    
-    private func updateSelection(isMale: Bool) {
-        maleButton.isSelected = isMale
-        femaleButton.isSelected = !isMale
-    }
-    
-    private func navigateToNextStep() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-            let step3VC = SignUpStep3ViewController()
-            self?.navigationController?.pushViewController(step3VC, animated: true)
-        }
+        viewModel.didSelectFemale.send()
     }
 }
 

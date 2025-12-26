@@ -1,8 +1,15 @@
 import UIKit
 import SnapKit
 import Then
+import Combine
 
 class SplashViewController: UIViewController {
+    
+    // MARK: - Properties
+    
+    weak var coordinator: SplashCoordinator?
+    private let viewModel = SplashViewModel()
+    private var cancellables = Set<AnyCancellable>()
     
     // MARK: - UI Components
     
@@ -28,11 +35,7 @@ class SplashViewController: UIViewController {
         
         setupUI()
         setupLayout()
-        
-        // 2초 뒤 로그인 화면으로 이동
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-            self?.transitionToLogin()
-        }
+        bindViewModel()
     }
     
     // MARK: - Setup
@@ -54,20 +57,15 @@ class SplashViewController: UIViewController {
         }
     }
     
-    // MARK: - Navigation
+    // MARK: - Binding
     
-    private func transitionToLogin() {
-        // UIWindow의 rootViewController를 교체하여 전환 (뒤로가기 불가하게)
-        guard let windowScene = view.window?.windowScene,
-              let delegate = windowScene.delegate as? SceneDelegate,
-              let window = delegate.window else { return }
-        
-        let loginVC = LoginViewController()
-        
-        // 부드러운 전환 애니메이션
-        UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve, animations: {
-            window.rootViewController = loginVC
-        }, completion: nil)
+    private func bindViewModel() {
+        viewModel.navigateToLogin
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                self?.coordinator?.finish()
+            }
+            .store(in: &cancellables)
     }
 }
 

@@ -1,8 +1,15 @@
 import UIKit
 import SnapKit
 import Then
+import Combine
 
 class SignUpStep7ViewController: UIViewController {
+    
+    // MARK: - Properties
+    
+    weak var coordinator: SignUpCoordinator?
+    private let viewModel = SignUpStep7ViewModel()
+    private var cancellables = Set<AnyCancellable>()
     
     // MARK: - UI Components
     
@@ -56,6 +63,7 @@ class SignUpStep7ViewController: UIViewController {
         setupUI()
         setupLayout()
         setupActions()
+        bindViewModel()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -105,26 +113,35 @@ class SignUpStep7ViewController: UIViewController {
         nextButton.addTarget(self, action: #selector(didTapNext), for: .touchUpInside)
     }
     
+    // MARK: - Binding
+    
+    private func bindViewModel() {
+        viewModel.$isNextButtonEnabled
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.isEnabled, on: nextButton)
+            .store(in: &cancellables)
+        
+        viewModel.navigateToComplete
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                self?.coordinator?.showComplete()
+            }
+            .store(in: &cancellables)
+    }
+    
     // MARK: - Actions
     
     @objc private func textDidChange() {
         let text = interestInputView.textField.text ?? ""
-        nextButton.isEnabled = !text.isEmpty
+        viewModel.interestText.send(text)
     }
     
     @objc private func didTapSkip() {
-        // TODO: 관심 주제 건너뛰기 처리
-        navigateToComplete()
+        viewModel.didTapSkip.send()
     }
     
     @objc private func didTapNext() {
-        // TODO: 관심 주제 저장 및 회원가입 완료 API 호출
-        navigateToComplete()
-    }
-    
-    private func navigateToComplete() {
-        let completeVC = SignUpCompleteViewController()
-        navigationController?.pushViewController(completeVC, animated: true)
+        viewModel.didTapNext.send()
     }
 }
 

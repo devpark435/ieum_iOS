@@ -1,8 +1,15 @@
 import UIKit
 import SnapKit
 import Then
+import Combine
 
 class SignUpStep1ViewController: UIViewController {
+    
+    // MARK: - Properties
+    
+    weak var coordinator: SignUpCoordinator?
+    private let viewModel = SignUpStep1ViewModel()
+    private var cancellables = Set<AnyCancellable>()
     
     // MARK: - UI Components
     
@@ -49,6 +56,7 @@ class SignUpStep1ViewController: UIViewController {
         setupUI()
         setupLayout()
         setupActions()
+        bindViewModel()
     }
     
     // MARK: - Setup
@@ -99,32 +107,35 @@ class SignUpStep1ViewController: UIViewController {
         caregiverButton.addTarget(self, action: #selector(didTapCaregiver), for: .touchUpInside)
     }
     
+    // MARK: - Binding
+    
+    private func bindViewModel() {
+        viewModel.$isPatientSelected
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.isSelected, on: patientButton)
+            .store(in: &cancellables)
+        
+        viewModel.$isCaregiverSelected
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.isSelected, on: caregiverButton)
+            .store(in: &cancellables)
+        
+        viewModel.navigateToNext
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                self?.coordinator?.showStep2()
+            }
+            .store(in: &cancellables)
+    }
+    
     // MARK: - Actions
     
     @objc private func didTapPatient() {
-        updateSelection(isPatient: true)
-        navigateToNextStep()
+        viewModel.didSelectPatient.send()
     }
     
     @objc private func didTapCaregiver() {
-        updateSelection(isPatient: false)
-        navigateToNextStep()
-    }
-    
-    private func navigateToNextStep() {
-        // 선택 시각적 피드백을 위해 약간의 딜레이 후 이동
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-            let step2VC = SignUpStep2ViewController()
-            self?.navigationController?.pushViewController(step2VC, animated: true)
-        }
-    }
-    
-    private func updateSelection(isPatient: Bool) {
-        patientButton.isSelected = isPatient
-        caregiverButton.isSelected = !isPatient
-        
-        // 그림자 처리를 위해 selected 상태일 때 그림자 제거하거나 스타일 조정 가능
-        // IeumButton 내부 로직에 따라 배경색은 자동 변경됨
+        viewModel.didSelectCaregiver.send()
     }
 }
 

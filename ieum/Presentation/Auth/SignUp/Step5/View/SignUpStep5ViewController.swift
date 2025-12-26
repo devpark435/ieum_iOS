@@ -1,8 +1,15 @@
 import UIKit
 import SnapKit
 import Then
+import Combine
 
 class SignUpStep5ViewController: UIViewController {
+    
+    // MARK: - Properties
+    
+    weak var coordinator: SignUpCoordinator?
+    private let viewModel = SignUpStep5ViewModel()
+    private var cancellables = Set<AnyCancellable>()
     
     // MARK: - UI Components
     
@@ -49,7 +56,6 @@ class SignUpStep5ViewController: UIViewController {
     
     // MARK: - Data
     
-    private let ageGroups = ["30대 이하", "40대", "50대", "60대", "70대 이상"]
     private var buttons: [IeumButton] = []
     
     // MARK: - Life Cycle
@@ -61,6 +67,7 @@ class SignUpStep5ViewController: UIViewController {
         setupUI()
         setupLayout()
         setupActions()
+        bindViewModel()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -75,7 +82,7 @@ class SignUpStep5ViewController: UIViewController {
         view.addSubview(titleLabel)
         view.addSubview(buttonStackView)
         
-        ageGroups.forEach { title in
+        viewModel.ageGroups.forEach { title in
             let button = IeumButton(title: title).then {
                 $0.setStyle(backgroundColor: Colors.white, borderColor: Colors.transparent, titleColor: Colors.Slate.s900, for: .normal)
                 $0.setStyle(backgroundColor: Colors.Slate.s900, borderColor: Colors.transparent, titleColor: Colors.white, for: .selected)
@@ -126,30 +133,41 @@ class SignUpStep5ViewController: UIViewController {
         nextButton.addTarget(self, action: #selector(didTapNext), for: .touchUpInside)
     }
     
+    // MARK: - Binding
+    
+    private func bindViewModel() {
+        viewModel.$selectedAgeGroup
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] selectedAgeGroup in
+                guard let self = self, let selectedAgeGroup = selectedAgeGroup else { return }
+                self.buttons.forEach { button in
+                    button.isSelected = (button.title(for: .normal) == selectedAgeGroup)
+                }
+                self.nextButton.isEnabled = true
+            }
+            .store(in: &cancellables)
+        
+        viewModel.navigateToNext
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                self?.coordinator?.showStep6()
+            }
+            .store(in: &cancellables)
+    }
+    
     // MARK: - Actions
     
     @objc private func didTapAgeGroup(_ sender: IeumButton) {
-        // 단일 선택 로직
-        buttons.forEach { $0.isSelected = false }
-        sender.isSelected = true
-        
-        // 다음 버튼 활성화
-        nextButton.isEnabled = true
+        guard let title = sender.title(for: .normal) else { return }
+        viewModel.didSelectAgeGroup.send(title)
     }
     
     @objc private func didTapSkip() {
-        // 건너뛰기 -> 다음 단계로 이동 (선택값 없음)
-        navigateToNextStep()
+        viewModel.didTapSkip.send()
     }
     
     @objc private func didTapNext() {
-        // 다음 단계로 이동
-        navigateToNextStep()
-    }
-    
-    private func navigateToNextStep() {
-        let step6VC = SignUpStep6ViewController()
-        navigationController?.pushViewController(step6VC, animated: true)
+        viewModel.didTapNext.send()
     }
 }
 
