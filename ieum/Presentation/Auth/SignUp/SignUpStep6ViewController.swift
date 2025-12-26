@@ -73,13 +73,14 @@ class SignUpStep6ViewController: UIViewController {
     
     // MARK: - Data
     
+    // TODO: 행정구역 데이터 API 연동 또는 로컬 데이터 고도화
     private let cities = [
         "서울특별시", "경기도", "부산광역시", "대구광역시",
         "인천광역시", "광주광역시", "대전광역시", "울산광역시",
         "세종특별자치시", "강원특별자치도", "충청북도", "충청남도",
         "전북특별자치도", "전라남도", "경상북도", "경상남도", "제주특별자치도"
     ]
-
+    
     private let districts: [String: [String]] = [
         "서울특별시": [
             "강남구", "강동구", "강북구", "강서구", "관악구", "광진구", "구로구", "금천구",
@@ -296,10 +297,12 @@ class SignUpStep6ViewController: UIViewController {
     // MARK: - Actions
     
     @objc private func didTapSkip() {
+        // TODO: 거주지역 선택 건너뛰기 처리 (nil 전송 등)
         navigateToNextStep()
     }
     
     @objc private func didTapNext() {
+        // TODO: 선택된 지역 정보 저장
         navigateToNextStep()
     }
     

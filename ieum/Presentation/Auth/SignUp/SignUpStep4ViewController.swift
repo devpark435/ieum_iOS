@@ -49,6 +49,7 @@ class SignUpStep4ViewController: UIViewController {
     
     // MARK: - Data
     
+    // TODO: 서버에서 진단명 리스트 받아오기
     private let diagnosisList = ["직장암", "대장암", "간이식", "기타"]
     private var selectedDiagnosis: [String: String] = [:] // [진단명: 병기(없으면 "")]
     

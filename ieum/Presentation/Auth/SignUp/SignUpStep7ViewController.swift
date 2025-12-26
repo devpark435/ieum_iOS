@@ -113,10 +113,12 @@ class SignUpStep7ViewController: UIViewController {
     }
     
     @objc private func didTapSkip() {
+        // TODO: 관심 주제 건너뛰기 처리
         navigateToComplete()
     }
     
     @objc private func didTapNext() {
+        // TODO: 관심 주제 저장 및 회원가입 완료 API 호출
         navigateToComplete()
     }
     

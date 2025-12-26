@@ -122,14 +122,14 @@ class SignUpCompleteViewController: UIViewController {
     // MARK: - Actions
     
     @objc private func didTapStart() {
-        // 메인 화면으로 이동 (루트 교체)
+        // TODO: 메인 화면 진입 전 필요한 초기화 작업 수행
         transitionToMain()
     }
     
     @objc private func didTapDetailInfo() {
-        // 상세 정보 입력 화면으로 이동 (아직 미구현, 일단 메인으로)
+        // TODO: 상세 정보 입력 화면으로 이동 (추후 구현)
         print("상세 정보 입력하기 탭")
-        transitionToMain()
+        transitionToMain() // 임시로 메인 이동
     }
     
     private func transitionToMain() {

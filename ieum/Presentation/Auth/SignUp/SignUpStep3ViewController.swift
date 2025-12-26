@@ -133,6 +133,7 @@ class SignUpStep3ViewController: UIViewController {
     }
     
     @objc private func didTapNext() {
+        // TODO: 닉네임 중복 확인 API 호출 필요
         print("닉네임 입력 완료: \(nicknameInputView.textField.text ?? "")")
         
         let step4VC = SignUpStep4ViewController()

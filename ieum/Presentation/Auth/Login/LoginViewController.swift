@@ -85,13 +85,12 @@ class LoginViewController: UIViewController {
     // MARK: - Actions
     
     @objc private func didTapKakaoLogin() {
+        // TODO: 카카오 로그인 SDK 연동
         print("카카오 로그인 버튼 탭")
         
         let step1VC = SignUpStep1ViewController()
-        // 네비게이션 컨트롤러로 감싸서 present
         let nav = UINavigationController(rootViewController: step1VC)
         nav.modalPresentationStyle = .fullScreen
-        // 네비게이션 바 숨기기 (커스텀 헤더 사용 시)
         nav.setNavigationBarHidden(true, animated: false)
         
         present(nav, animated: true)
