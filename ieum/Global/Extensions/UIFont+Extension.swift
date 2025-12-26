@@ -7,11 +7,11 @@ extension UIFont {
     struct IeumFont {
         
         // MARK: - Label
-        static let label = style(size: 15, weight: .regular, lineHeight: nil)
+        static let label = style(size: 15, weight: .medium, lineHeight: nil)
         
         // MARK: - Button (btn)
         enum Btn {
-            static let large = style(size: 20, weight: .bold, lineHeight: nil)
+            static let large = style(size: 20, weight: .semibold, lineHeight: nil)
             static let medium = style(size: 17, weight: .bold, lineHeight: nil)
             static let small = style(size: 15, weight: .bold, lineHeight: nil)
         }
@@ -27,13 +27,13 @@ extension UIFont {
         
         // MARK: - Text
         enum Text {
-            static let bodyM = style(size: 17, weight: .regular, lineHeight: 140)
+            static let bodyM = style(size: 17, weight: .semibold, lineHeight: 140)
             static let bodyXSmall = style(size: 15, weight: .regular, lineHeight: 140)
         }
         
         // MARK: - Helper
         enum Helper {
-            static let characterCount = style(size: 14, weight: .regular, lineHeight: nil)
+            static let characterCount = style(size: 14, weight: .semibold, lineHeight: nil)
             
             enum AboveBtn {
                 static let m = style(size: 14, weight: .regular, lineHeight: nil)
@@ -43,7 +43,7 @@ extension UIFont {
         
         // MARK: - Input
         enum Input {
-            static let placeholder = style(size: 20, weight: .regular, lineHeight: nil)
+            static let placeholder = style(size: 20, weight: .semibold, lineHeight: nil)
         }
         
         private static func style(size: CGFloat, weight: UIFont.Weight, lineHeight: CGFloat?) -> FontDescription {

@@ -151,4 +151,14 @@ enum Colors {
         static let b900 = UIColor(hex: "#1E3A8A")
         static let b950 = UIColor(hex: "#172554")
     }
+    
+    // MARK: - Lime
+    enum Lime {
+        static let l100 = UIColor(hex: "#ECFCCA")
+        static let l200 = UIColor(hex: "#D8F999")
+        static let l400 = UIColor(hex: "#9AE600")
+        static let l500 = UIColor(hex: "#7CCF00")
+    }
+    
+    static let ieumBackground = UIColor(hex: "#FBFDF4")
 }

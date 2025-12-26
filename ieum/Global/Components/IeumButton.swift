@@ -16,85 +16,150 @@ class IeumButton: UIButton {
     
     private var styles: [UInt: Style] = [:]
     
+    // 커스텀 타이틀 라벨 (가운데 정렬을 위해 사용)
+    private let customTitleLabel = UILabel().then {
+        $0.font = .ieum(UIFont.IeumFont.Btn.large) // 기본 폰트 Large
+        $0.textAlignment = .center
+    }
+    
+    // 뱃지 뷰 (병기 표시용)
+    private let badgeView = UIView().then {
+        $0.backgroundColor = Colors.white
+        $0.layer.cornerRadius = 20 // 40x40 기준
+        $0.isHidden = true
+        $0.isUserInteractionEnabled = false
+    }
+    
+    private let badgeLabel = UILabel().then {
+        $0.font = .ieum(UIFont.IeumFont.Btn.large) // 뱃지도 Large
+        $0.textColor = Colors.Gray.g950
+        $0.textAlignment = .center
+    }
+    
+    // 컨텐츠 스택뷰 (타이틀 + 뱃지)
+    private let contentStackView = UIStackView().then {
+        $0.axis = .horizontal
+        $0.spacing = 10 // 뱃지와 타이틀 사이 간격 10
+        $0.alignment = .center
+        $0.distribution = .fill
+        $0.isUserInteractionEnabled = false
+    }
+    
     // MARK: - Initializer
     
     init(title: String? = nil, radius: CGFloat = 12) {
         super.init(frame: .zero)
         
         if let title = title {
+            // setTitle 대신 커스텀 라벨 사용
+            customTitleLabel.text = title
+            // 접근성을 위해 기본 title도 설정하지만 hidden 처리 등 고려
             setTitle(title, for: .normal)
+            setTitleColor(.clear, for: .normal) // 기본 타이틀 숨김
         }
         
         setupBaseStyle(radius: radius)
         setupLayout()
+        setupBadge()
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
+    // MARK: - Override
+    
+    override func setTitle(_ title: String?, for state: UIControl.State) {
+        super.setTitle(title, for: state)
+        if state == .normal {
+            customTitleLabel.text = title
+            super.setTitleColor(.clear, for: .normal)
+        }
+    }
+    
     // MARK: - Setup
     
     private func setupBaseStyle(radius: CGFloat) {
         layer.cornerRadius = radius
-        layer.borderWidth = 1.0 // 테두리 두께 기본값
-        titleLabel?.font = .ieum(UIFont.IeumFont.Btn.medium)
+        layer.borderWidth = 1.0
+        // titleLabel?.font = .ieum(UIFont.IeumFont.Btn.medium) // 사용 안함
         
-        // 기본 스타일 (아무것도 설정 안했을 때)
+        // 그림자 적용 (radius가 0보다 클 때만 적용하거나 항상 적용)
+        if radius > 0 {
+            layer.shadowColor = UIColor(hex: "#C2C2C2").cgColor
+            layer.shadowOpacity = 0.2
+            layer.shadowOffset = CGSize(width: 0, height: 4)
+            layer.shadowRadius = 30 // Blur 30에 해당
+        }
+        
         setStyle(backgroundColor: Colors.Primary.green, titleColor: Colors.white, for: .normal)
         setStyle(backgroundColor: Colors.Gray.g200, titleColor: Colors.Gray.g400, for: .disabled)
     }
     
     private func setupLayout() {
-        snp.makeConstraints {
-            $0.height.equalTo(52)
+        addSubview(contentStackView)
+        contentStackView.addArrangedSubview(customTitleLabel)
+        contentStackView.addArrangedSubview(badgeView)
+        
+        contentStackView.snp.makeConstraints {
+            $0.center.equalToSuperview()
+            // 좌우 여백 확보 (긴 텍스트 대응)
+            $0.leading.greaterThanOrEqualToSuperview().offset(16)
+            $0.trailing.lessThanOrEqualToSuperview().inset(16)
+        }
+    }
+    
+    private func setupBadge() {
+        badgeView.addSubview(badgeLabel)
+        
+        badgeView.snp.makeConstraints {
+            $0.width.height.equalTo(40) // 40x40 원형
+        }
+        
+        badgeLabel.snp.makeConstraints {
+            $0.center.equalToSuperview()
         }
     }
     
     // MARK: - Configuration Methods
     
-    /// 상태별 스타일을 설정합니다.
-    /// - Parameters:
-    ///   - backgroundColor: 배경색
-    ///   - borderColor: 테두리색 (기본값 투명)
-    ///   - titleColor: 텍스트색
-    ///   - state: 적용할 버튼 상태 (.normal, .highlighted, .disabled)
     func setStyle(backgroundColor: UIColor, borderColor: UIColor = Colors.transparent, titleColor: UIColor, for state: UIControl.State) {
         let style = Style(backgroundColor: backgroundColor, borderColor: borderColor, titleColor: titleColor)
         styles[state.rawValue] = style
         
-        // setTitleColor는 UIButton 기본 기능 사용
-        self.setTitleColor(titleColor, for: state)
-        
-        // 현재 상태가 방금 설정한 state라면 즉시 업데이트
-        if self.state == state {
+        // 커스텀 라벨 색상 변경을 위해 저장해두고 updateAppearance에서 처리
+        if self.state == state || (state == .normal && styles[self.state.rawValue] == nil) {
             updateAppearance()
         }
-        
-        // Normal 상태 설정 시, 다른 상태가 비어있으면 기본값으로 활용할 수도 있음 (선택사항)
-        if state == .normal {
-            updateAppearance()
+    }
+    
+    /// 뱃지 텍스트 설정 (nil이면 숨김)
+    func setBadge(text: String?) {
+        if let text = text {
+            badgeLabel.text = text
+            badgeView.isHidden = false
+        } else {
+            badgeView.isHidden = true
         }
     }
     
     // MARK: - State Handling
     
     private func updateAppearance() {
-        // 현재 상태에 맞는 스타일 찾기
-        // highlighted나 disabled가 없으면 normal 스타일을 따르도록 폴백 로직 추가 가능
         let currentState = self.state
         
         var style: Style?
         
         if currentState.contains(.disabled) {
             style = styles[UIControl.State.disabled.rawValue]
+        } else if currentState.contains(.selected) {
+            style = styles[UIControl.State.selected.rawValue]
         } else if currentState.contains(.highlighted) {
             style = styles[UIControl.State.highlighted.rawValue]
         } else {
             style = styles[UIControl.State.normal.rawValue]
         }
         
-        // 스타일이 없으면 Normal로 폴백
         if style == nil {
             style = styles[UIControl.State.normal.rawValue]
         }
@@ -103,14 +168,18 @@ class IeumButton: UIButton {
         
         self.backgroundColor = finalStyle.backgroundColor
         self.layer.borderColor = finalStyle.borderColor.cgColor
+        self.customTitleLabel.textColor = finalStyle.titleColor
     }
     
-    // 상태 변경 감지하여 스타일 업데이트
     override var isEnabled: Bool {
         didSet { updateAppearance() }
     }
     
     override var isHighlighted: Bool {
+        didSet { updateAppearance() }
+    }
+    
+    override var isSelected: Bool {
         didSet { updateAppearance() }
     }
 }

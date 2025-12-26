@@ -1,8 +1,12 @@
+---
+alwaysApply: true
+---
+
 # Swift iOS Project Cursor Rules
 
 ## Tech Stack
 - UIKit (Code-based, No Storyboard)
-- Architecture: MVVM + Combine
+- Architecture: MVVM + Combine + Coordinator
 - UI: SnapKit, Then
 - Networking: Alamofire with Interceptors
 - SwiftUI integration via UIHostingController when needed
@@ -11,11 +15,16 @@
 ```
 ├── App/
 ├── Presentation/
-│   ├── Scenes/
-│   │   └── [Feature]/
-│   │       ├── [Feature]ViewController.swift
-│   │       ├── [Feature]ViewModel.swift
-│   │       └── [Feature]View.swift (SwiftUI)
+│   ├── Coordinator/
+│   │   ├── AppCoordinator.swift
+│   │   ├── AuthCoordinator.swift
+│   │   └── [Feature]Coordinator.swift
+│   ├── [Feature]/
+│   │   ├── View/
+│   │   │   ├── [Feature]ViewController.swift
+│   │   │   └── [Feature]View.swift (SwiftUI, optional)
+│   │   └── ViewModel/
+│   │       └── [Feature]ViewModel.swift
 │   ├── Common/
 │   │   ├── Base/
 │   │   └── Components/
@@ -60,10 +69,126 @@ enum Fonts {
 }
 ```
 
+## Coordinator Pattern
+
+### Coordinator Protocol
+```swift
+protocol Coordinator: AnyObject {
+    var childCoordinators: [Coordinator] { get set }
+    var navigationController: UINavigationController { get set }
+    
+    func start()
+    func finish()
+}
+
+extension Coordinator {
+    func addChild(_ coordinator: Coordinator) {
+        childCoordinators.append(coordinator)
+    }
+    
+    func removeChild(_ coordinator: Coordinator) {
+        childCoordinators.removeAll { $0 === coordinator }
+    }
+    
+    func finish() {
+        childCoordinators.removeAll()
+    }
+}
+```
+
+### AppCoordinator Template
+```swift
+final class AppCoordinator: Coordinator {
+    var childCoordinators: [Coordinator] = []
+    var navigationController: UINavigationController
+    
+    private let window: UIWindow
+    
+    init(window: UIWindow) {
+        self.window = window
+        self.navigationController = UINavigationController()
+    }
+    
+    func start() {
+        window.rootViewController = navigationController
+        window.makeKeyAndVisible()
+        
+        showSplash()
+    }
+    
+    private func showSplash() {
+        let coordinator = SplashCoordinator(navigationController: navigationController)
+        coordinator.delegate = self
+        addChild(coordinator)
+        coordinator.start()
+    }
+}
+
+extension AppCoordinator: SplashCoordinatorDelegate {
+    func didFinishSplash() {
+        removeChild(childCoordinators.first!)
+        showAuth()
+    }
+    
+    private func showAuth() {
+        let coordinator = AuthCoordinator(navigationController: navigationController)
+        addChild(coordinator)
+        coordinator.start()
+    }
+}
+```
+
+### Feature Coordinator Template
+```swift
+protocol AuthCoordinatorDelegate: AnyObject {
+    func didFinishAuth()
+}
+
+final class AuthCoordinator: Coordinator {
+    var childCoordinators: [Coordinator] = []
+    var navigationController: UINavigationController
+    
+    weak var delegate: AuthCoordinatorDelegate?
+    
+    init(navigationController: UINavigationController) {
+        self.navigationController = navigationController
+    }
+    
+    func start() {
+        showLogin()
+    }
+    
+    private func showLogin() {
+        let viewModel = LoginViewModel()
+        let viewController = LoginViewController(viewModel: viewModel, coordinator: self)
+        navigationController.setViewControllers([viewController], animated: false)
+    }
+    
+    func showSignUp() {
+        let coordinator = SignUpCoordinator(navigationController: navigationController)
+        coordinator.delegate = self
+        addChild(coordinator)
+        coordinator.start()
+    }
+    
+    func showMain() {
+        delegate?.didFinishAuth()
+    }
+}
+
+extension AuthCoordinator: SignUpCoordinatorDelegate {
+    func didFinishSignUp() {
+        removeChild(childCoordinators.first!)
+        showMain()
+    }
+}
+```
+
 ## ViewController Template
 ```swift
 final class ExampleViewController: UIViewController {
     private let viewModel: ExampleViewModel
+    private let coordinator: ExampleCoordinator?
     private var cancellables = Set<AnyCancellable>()
     
     private let titleLabel = UILabel().then {
@@ -71,8 +196,9 @@ final class ExampleViewController: UIViewController {
         $0.font = Fonts.title
     }
     
-    init(viewModel: ExampleViewModel) {
+    init(viewModel: ExampleViewModel, coordinator: ExampleCoordinator? = nil) {
         self.viewModel = viewModel
+        self.coordinator = coordinator
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -102,6 +228,13 @@ final class ExampleViewController: UIViewController {
                 self?.titleLabel.text = title
             }
             .store(in: &cancellables)
+        
+        // Navigation events from ViewModel
+        viewModel.navigateToNext
+            .sink { [weak self] in
+                self?.coordinator?.showNext()
+            }
+            .store(in: &cancellables)
     }
 }
 ```
@@ -111,10 +244,14 @@ final class ExampleViewController: UIViewController {
 final class ExampleViewModel: ObservableObject {
     // Inputs
     let viewDidLoad = PassthroughSubject<Void, Never>()
+    let didTapNextButton = PassthroughSubject<Void, Never>()
     
     // Outputs
     @Published private(set) var title = ""
     @Published private(set) var isLoading = false
+    
+    // Navigation Events (bound to Coordinator)
+    let navigateToNext = PassthroughSubject<Void, Never>()
     
     private let useCase: ExampleUseCase
     private var cancellables = Set<AnyCancellable>()
@@ -128,6 +265,17 @@ final class ExampleViewModel: ObservableObject {
         viewDidLoad
             .sink { [weak self] in self?.loadData() }
             .store(in: &cancellables)
+        
+        didTapNextButton
+            .sink { [weak self] in
+                self?.navigateToNext.send()
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func loadData() {
+        isLoading = true
+        // API call...
     }
 }
 ```
@@ -184,5 +332,9 @@ final class AuthInterceptor: RequestInterceptor {
 - Use `receive(on: DispatchQueue.main)` for UI updates
 - ViewControllers suffix: `ViewController`
 - ViewModels suffix: `ViewModel`
+- Coordinators suffix: `Coordinator`
 - Keep ViewControllers lightweight (logic in ViewModel)
 - Use dependency injection
+- **Navigation**: ViewControllers should NOT directly create or push other ViewControllers. Use Coordinators for all navigation.
+- **Coordinator Pattern**: Each feature flow should have its own Coordinator. ViewControllers communicate navigation needs through ViewModel → Coordinator.
+- **Combine + Coordinator**: ViewModel publishes navigation events (PassthroughSubject), ViewController binds to Coordinator methods.
