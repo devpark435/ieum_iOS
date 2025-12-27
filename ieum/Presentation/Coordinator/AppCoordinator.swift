@@ -33,9 +33,8 @@ final class AppCoordinator: Coordinator {
     }
     
     private func showMain() {
-        // TODO: MainTabBarController 등으로 교체
-        let mainVC = ViewController()
-        window.rootViewController = mainVC
+        let mainTabBarController = MainTabBarController()
+        window.rootViewController = mainTabBarController
         finish()
     }
     

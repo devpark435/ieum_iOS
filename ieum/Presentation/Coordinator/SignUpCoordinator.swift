@@ -75,8 +75,14 @@ final class SignUpCoordinator: Coordinator {
     }
     
     func finish() {
-        navigationController.dismiss(animated: true) { [weak self] in
-            self?.delegate?.didFinishSignUp()
+        // 바텀시트를 닫는 경우 (StageSelection)
+        if navigationController.presentedViewController != nil {
+            navigationController.dismiss(animated: true) { [weak self] in
+                self?.delegate?.didFinishSignUp()
+            }
+        } else {
+            // 회원가입 완료 후 메인 화면으로 이동
+            delegate?.didFinishSignUp()
         }
     }
 }
