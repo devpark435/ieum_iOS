@@ -4,6 +4,8 @@ import Then
 
 final class MainTabBarController: UITabBarController {
     
+    private var coordinators: [Coordinator] = []
+    
     // MARK: - Life Cycle
     
     override func viewDidLoad() {
@@ -31,8 +33,11 @@ final class MainTabBarController: UITabBarController {
     }
     
     private func setupViewControllers() {
-        let feedVC = FeedViewController()
-        let feedNav = UINavigationController(rootViewController: feedVC)
+        let feedNav = UINavigationController()
+        let feedCoordinator = FeedCoordinator(navigationController: feedNav)
+        feedCoordinator.start()
+        coordinators.append(feedCoordinator)
+        
         let feedTabBarItem = UITabBarItem(
             title: nil,
             image: UIImage(systemName: "house"),

@@ -160,5 +160,10 @@ enum Colors {
         static let l500 = UIColor(hex: "#7CCF00")
     }
     
+    // MARK: - Emerald
+    enum Emerald {
+        static let e600 = UIColor(hex: "#009966")
+    }
+    
     static let ieumBackground = UIColor(hex: "#FBFDF4")
 }

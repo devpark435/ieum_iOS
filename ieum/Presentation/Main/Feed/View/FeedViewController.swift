@@ -7,8 +7,21 @@ final class FeedViewController: UIViewController {
     
     // MARK: - Properties
     
-    private let viewModel = FeedViewModel()
+    private let viewModel: FeedViewModel
+    private weak var coordinator: FeedCoordinator?
     private var cancellables = Set<AnyCancellable>()
+    
+    // MARK: - Initializer
+    
+    init(viewModel: FeedViewModel, coordinator: FeedCoordinator) {
+        self.viewModel = viewModel
+        self.coordinator = coordinator
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     // MARK: - UI Components
     
@@ -187,12 +200,16 @@ final class FeedViewController: UIViewController {
         // 전체 화면을 덮도록 설정 (네비게이션 바 포함)
         bottomSheet.modalPresentationStyle = .overFullScreen
         
-        bottomSheet.onSelectTreatmentRecord = {
-            print("치료 기록 선택")
+        bottomSheet.onSelectTreatmentRecord = { [weak self] in
+            self?.dismiss(animated: false) {
+                self?.coordinator?.showTreatmentRecord()
+            }
         }
         
-        bottomSheet.onSelectDailyRecord = {
-            print("일상 기록 선택")
+        bottomSheet.onSelectDailyRecord = { [weak self] in
+            self?.dismiss(animated: false) {
+                self?.coordinator?.showDailyRecord()
+            }
         }
         
         // 애니메이션 없이 present (모달 내부에서 애니메이션 처리)
