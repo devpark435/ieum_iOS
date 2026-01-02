@@ -13,6 +13,9 @@ final class FeedViewModel: ObservableObject {
     @Published private(set) var posts: [Post] = []
     @Published private(set) var pagination: Pagination?
     
+    // Navigation Events
+    let showWritePost = PassthroughSubject<Void, Never>()
+    
     private var cancellables = Set<AnyCancellable>()
     
     init() {
@@ -36,8 +39,8 @@ final class FeedViewModel: ObservableObject {
         
         didTapWritePost
             .sink { [weak self] in
-                // TODO: 글쓰기 화면으로 이동
-                print("글쓰기 버튼 탭")
+                print("FeedViewModel: didTapWritePost 수신됨")
+                self?.showWritePost.send()
             }
             .store(in: &cancellables)
     }

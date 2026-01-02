@@ -27,6 +27,7 @@ final class FloatingActionButton: UIButton {
         $0.axis = .horizontal
         $0.spacing = 8
         $0.alignment = .center
+        $0.isUserInteractionEnabled = false
     }
     
     // MARK: - Initializer
@@ -76,6 +77,7 @@ final class FloatingActionButton: UIButton {
     // MARK: - Actions
     
     @objc private func didTapButton() {
+        print("FloatingActionButton 탭됨")
         onTapped?()
     }
 }

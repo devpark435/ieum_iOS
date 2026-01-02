@@ -6,6 +6,11 @@ final class AppCoordinator: Coordinator {
     
     private let window: UIWindow
     
+    // MARK: - Development Mode
+    /// 개발 모드: true로 설정하면 회원가입 과정을 건너뛰고 바로 메인 화면으로 이동
+    /// 릴리즈 빌드 전에 반드시 false로 변경해야 합니다.
+    private let isDevelopmentMode: Bool = true
+    
     init(window: UIWindow) {
         self.window = window
         self.navigationController = UINavigationController()
@@ -15,7 +20,12 @@ final class AppCoordinator: Coordinator {
         window.rootViewController = navigationController
         window.makeKeyAndVisible()
         
-        showSplash()
+        // 개발 모드인 경우 바로 메인 화면으로 이동
+        if isDevelopmentMode {
+            showMain()
+        } else {
+            showSplash()
+        }
     }
     
     private func showSplash() {

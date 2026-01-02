@@ -89,6 +89,8 @@ final class FeedViewController: UIViewController {
         contentView.addSubview(tableView)
         
         view.addSubview(floatingActionButton)
+        // 버튼이 다른 뷰 위에 표시되도록
+        view.bringSubviewToFront(floatingActionButton)
     }
     
     private func setupLayout() {
@@ -143,8 +145,17 @@ final class FeedViewController: UIViewController {
         }
         
         floatingActionButton.onTapped = { [weak self] in
+            print("FloatingActionButton onTapped 호출됨")
             self?.viewModel.didTapWritePost.send()
         }
+        
+        viewModel.showWritePost
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                print("FeedViewController: showWritePost 이벤트 수신됨")
+                self?.showWritePostBottomSheet()
+            }
+            .store(in: &cancellables)
         
         viewModel.$posts
             .receive(on: DispatchQueue.main)
@@ -168,6 +179,24 @@ final class FeedViewController: UIViewController {
     @objc private func didTapNotification() {
         // TODO: 알림 리스트 화면으로 이동
         print("알림 아이콘 탭")
+    }
+    
+    private func showWritePostBottomSheet() {
+        let bottomSheet = WritePostBottomSheet()
+        
+        // 전체 화면을 덮도록 설정 (네비게이션 바 포함)
+        bottomSheet.modalPresentationStyle = .overFullScreen
+        
+        bottomSheet.onSelectTreatmentRecord = {
+            print("치료 기록 선택")
+        }
+        
+        bottomSheet.onSelectDailyRecord = {
+            print("일상 기록 선택")
+        }
+        
+        // 애니메이션 없이 present (모달 내부에서 애니메이션 처리)
+        present(bottomSheet, animated: false)
     }
 }
 
