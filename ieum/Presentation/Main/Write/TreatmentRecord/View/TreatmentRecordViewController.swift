@@ -98,7 +98,11 @@ final class TreatmentRecordViewController: UIViewController {
     
     // 게시하기 버튼
     private let postButton = IeumButton(title: "게시하기").then {
-        $0.isEnabled = false // 초기 비활성
+        $0.isEnabled = false
+        $0.setStyle(backgroundColor: Colors.Treatment.buttonBackground, borderColor: Colors.Treatment.buttonBorder, titleColor: Colors.white, for: .normal)
+        $0.setStyle(backgroundColor: Colors.Gray.g200, borderColor: Colors.Gray.g200, titleColor: Colors.Gray.g400, for: .disabled)
+        
+        $0.titleLabel?.font = .ieum(UIFont.IeumFont.Btn.large)
     }
     
     // MARK: - Life Cycle
@@ -196,7 +200,7 @@ final class TreatmentRecordViewController: UIViewController {
         
         moodImageView.snp.makeConstraints {
             $0.center.equalToSuperview()
-            $0.width.height.equalTo(100)
+            $0.width.height.equalTo(108)
         }
         
         changeMoodButton.snp.makeConstraints {
@@ -215,14 +219,14 @@ final class TreatmentRecordViewController: UIViewController {
         shareView.snp.makeConstraints {
             $0.top.equalTo(recordStackView.snp.bottom).offset(12)
             $0.leading.trailing.equalToSuperview().inset(20)
-            $0.bottom.equalToSuperview().offset(-80) // 스크롤 뷰 bottom 마진 (버튼 높이 고려)
+            $0.bottom.equalToSuperview().offset(-80)
         }
         
-        // 게시하기 버튼 (하단 고정)
+        // 게시하기 버튼
         postButton.snp.makeConstraints {
             $0.leading.trailing.equalToSuperview().inset(20)
             $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(16)
-            $0.height.equalTo(56)
+            $0.height.equalTo(72)
         }
         
         bottomGradientView.snp.makeConstraints {
@@ -241,38 +245,42 @@ final class TreatmentRecordViewController: UIViewController {
         
         // 특이증상
         symptomItem.onTap = { [weak self] in
+            guard let self = self else { return }
             let vc = TextInputViewController(title: "어떤 특이증상이 있었나요?", placeholder: "특이증상을 적어주세요")
             vc.onComplete = { text in
-                self?.viewModel.updateSymptom(text)
+                self.viewModel.updateSymptom(text)
             }
-            self?.present(vc, animated: true)
+            self.present(vc, animated: true)
         }
         
         // 복약
         medicationItem.onTap = { [weak self] in
+            guard let self = self else { return }
             let vc = MedicationPopupViewController()
             vc.onSelect = { status in
-                self?.viewModel.updateMedication(status)
+                self.viewModel.updateMedication(status)
             }
-            self?.present(vc, animated: true)
+            self.present(vc, animated: true)
         }
         
         // 식이상태
         mealItem.onTap = { [weak self] in
+            guard let self = self else { return }
             let vc = MealInputViewController()
             vc.onComplete = { status, text in
-                self?.viewModel.updateMeal(status: status, description: text)
+                self.viewModel.updateMeal(status: status, description: text)
             }
-            self?.present(vc, animated: true)
+            self.present(vc, animated: true)
         }
         
         // 메모
         memoItem.onTap = { [weak self] in
+            guard let self = self else { return }
             let vc = TextInputViewController(title: "더 남기고싶은 이야기가 있나요?", placeholder: "추가로 남기고싶은 글을 자유롭게 적어주세요.")
             vc.onComplete = { text in
-                self?.viewModel.updateMemo(text)
+                self.viewModel.updateMemo(text)
             }
-            self?.present(vc, animated: true)
+            self.present(vc, animated: true)
         }
         
         // 사진 추가
@@ -316,10 +324,6 @@ final class TreatmentRecordViewController: UIViewController {
         // Symptom
         if let symptom = model.symptom, !symptom.isEmpty {
             symptomItem.updateContent(text: symptom)
-            // 완료 상태 뱃지는 텍스트 입력 시엔 별도로 없는 것으로 보임 (이미지 참고)
-            // 필요하다면 아이콘 체크 등으로 표시 가능
-            symptomItem.reset() // 초기화 후 다시 설정?
-            symptomItem.updateContent(text: symptom)
         } else {
             symptomItem.reset()
         }
@@ -337,7 +341,7 @@ final class TreatmentRecordViewController: UIViewController {
         // Meal
         if let meal = model.meal {
             // TODO: 실제 아이콘 에셋 적용 필요, 임시로 시스템 이미지
-            let iconName = "face.smiling" // 임시
+            let iconName = "face.smiling"
             let icon = UIImage(systemName: iconName)?.withRenderingMode(.alwaysTemplate)
             mealItem.updateStatus(icon: icon, text: meal.rawValue, color: Colors.Lime.l400)
             mealItem.updateContent(text: model.mealDescription)

@@ -2,7 +2,7 @@ import UIKit
 import SnapKit
 import Then
 
-final class TextInputViewController: UIViewController {
+final class TextInputViewController: DimmedViewController {
     
     // MARK: - Properties
     
@@ -10,6 +10,7 @@ final class TextInputViewController: UIViewController {
     
     private let titleText: String
     private let placeholderText: String
+    private var containerBottomConstraint: Constraint?
     
     // MARK: - UI Components
     
@@ -17,6 +18,7 @@ final class TextInputViewController: UIViewController {
         $0.backgroundColor = Colors.white
         $0.layer.cornerRadius = 20
         $0.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+        $0.clipsToBounds = true
     }
     
     private let titleLabel = UILabel().then {
@@ -40,46 +42,18 @@ final class TextInputViewController: UIViewController {
         $0.numberOfLines = 0
     }
     
-    // Input Accessory View
-    private lazy var accessoryView: UIView = {
-        let view = UIView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 56))
-        view.backgroundColor = Colors.Gray.g100 // 키보드 위 배경색 확인 필요
-        
-        let button = UIButton(type: .system)
-        button.setTitle("완료", for: .normal)
-        button.titleLabel?.font = .ieum(UIFont.IeumFont.Text.bodyM)
-        button.setTitleColor(Colors.Gray.g600, for: .normal) // 활성 상태에 따라 색상 변경 필요
-        button.backgroundColor = Colors.Gray.g200 // 비활성 배경
-        // button.layer.cornerRadius?
-        button.addTarget(self, action: #selector(didTapDone), for: .touchUpInside)
-        
-        // 버튼 스타일링은 디자인에 맞춰 조정 필요. 예시 이미지는 키보드 바로 위에 회색 바 형태
-        // 여기서는 전체가 버튼인 형태로 가정하거나, 우측에 완료 버튼이 있는 형태일 수 있음.
-        // 이미지상으로는 '완료' 버튼이 키보드 위에 꽉 차있는 형태(혹은 툴바 형태)로 보임.
-        
-        // 꽉 찬 버튼 형태로 구현
-        button.backgroundColor = Colors.Gray.g200
-        button.setTitleColor(Colors.white, for: .normal) // 텍스트 색상
-        
-        view.addSubview(button)
-        button.snp.makeConstraints {
-            $0.edges.equalToSuperview()
-        }
-        
-        return view
-    }()
+    private let doneButton = IeumButton(title: "완료", radius: 0).then {
+        $0.titleLabel?.font = .ieum(UIFont.IeumFont.Btn.large)
+        $0.setStyle(backgroundColor: Colors.Treatment.buttonBackground, titleColor: Colors.white, for: .normal)
+        $0.setStyle(backgroundColor: Colors.Gray.g200, titleColor: Colors.Gray.g400, for: .disabled)
+    }
     
     // MARK: - Initializer
     
     init(title: String, placeholder: String) {
         self.titleText = title
         self.placeholderText = placeholder
-        super.init(nibName: nil, bundle: nil)
-        modalPresentationStyle = .pageSheet
-        if let sheet = sheetPresentationController {
-            sheet.detents = [.medium(), .large()]
-            sheet.prefersGrabberVisible = true
-        }
+        super.init()
     }
     
     required init?(coder: NSCoder) {
@@ -90,15 +64,16 @@ final class TextInputViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = Colors.white
         setupUI()
         setupLayout()
+        setupActions()
         
         titleLabel.text = titleText
         placeholderLabel.text = placeholderText
         
-        // 텍스트뷰에 액세서리 뷰 연결
-        textView.inputAccessoryView = accessoryView
+        setupKeyboardObservers()
+        
+        doneButton.isEnabled = false
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -106,15 +81,27 @@ final class TextInputViewController: UIViewController {
         textView.becomeFirstResponder()
     }
     
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        removeKeyboardObservers()
+    }
+    
     // MARK: - Setup
     
     private func setupUI() {
-        view.addSubview(titleLabel)
-        view.addSubview(textView)
+        view.addSubview(containerView)
+        containerView.addSubview(titleLabel)
+        containerView.addSubview(textView)
         textView.addSubview(placeholderLabel)
+        containerView.addSubview(doneButton)
     }
     
     private func setupLayout() {
+        containerView.snp.makeConstraints {
+            $0.leading.trailing.equalToSuperview()
+            self.containerBottomConstraint = $0.bottom.equalToSuperview().constraint
+        }
+        
         titleLabel.snp.makeConstraints {
             $0.top.equalToSuperview().offset(32)
             $0.leading.equalToSuperview().offset(20)
@@ -123,13 +110,38 @@ final class TextInputViewController: UIViewController {
         textView.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(20)
             $0.leading.trailing.equalToSuperview().inset(20)
-            $0.height.equalTo(160) // 적절한 높이 설정
+            $0.height.equalTo(160)
+            $0.bottom.equalTo(doneButton.snp.top).offset(-24)
         }
         
         placeholderLabel.snp.makeConstraints {
             $0.top.leading.equalToSuperview().offset(16)
             $0.trailing.equalToSuperview().inset(16)
         }
+        
+        doneButton.snp.makeConstraints {
+            $0.leading.trailing.bottom.equalToSuperview()
+            $0.height.equalTo(72)
+        }
+    }
+    
+    private func setupActions() {
+        doneButton.addTarget(self, action: #selector(didTapDone), for: .touchUpInside)
+        
+        let tap = UITapGestureRecognizer(target: self, action: #selector(didTapBackground))
+        view.addGestureRecognizer(tap)
+        
+        let containerTap = UITapGestureRecognizer(target: self, action: nil)
+        containerView.addGestureRecognizer(containerTap)
+    }
+    
+    private func setupKeyboardObservers() {
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+    
+    private func removeKeyboardObservers() {
+        NotificationCenter.default.removeObserver(self)
     }
     
     // MARK: - Actions
@@ -139,11 +151,44 @@ final class TextInputViewController: UIViewController {
         textView.resignFirstResponder()
         dismiss(animated: true)
     }
+    
+    @objc private func didTapBackground() {
+        textView.resignFirstResponder()
+        dismiss(animated: true)
+    }
+    
+    // MARK: - Keyboard Handling
+    
+    @objc private func keyboardWillShow(notification: NSNotification) {
+        guard let userInfo = notification.userInfo,
+              let keyboardFrame = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
+              let duration = userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else { return }
+        
+        let keyboardHeight = keyboardFrame.height
+        
+        containerBottomConstraint?.update(offset: -keyboardHeight)
+        
+        UIView.animate(withDuration: duration) {
+            self.view.layoutIfNeeded()
+        }
+    }
+    
+    @objc private func keyboardWillHide(notification: NSNotification) {
+        guard let userInfo = notification.userInfo,
+              let duration = userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else { return }
+        
+        containerBottomConstraint?.update(offset: 0)
+        
+        UIView.animate(withDuration: duration) {
+            self.view.layoutIfNeeded()
+        }
+    }
 }
 
 extension TextInputViewController: UITextViewDelegate {
     func textViewDidChange(_ textView: UITextView) {
-        placeholderLabel.isHidden = !textView.text.isEmpty
+        let text = textView.text ?? ""
+        placeholderLabel.isHidden = !text.isEmpty
+        doneButton.isEnabled = !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }
-

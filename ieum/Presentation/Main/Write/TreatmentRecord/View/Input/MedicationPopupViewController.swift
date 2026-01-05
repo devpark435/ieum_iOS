@@ -2,17 +2,13 @@ import UIKit
 import SnapKit
 import Then
 
-final class MedicationPopupViewController: UIViewController {
+final class MedicationPopupViewController: DimmedViewController {
     
     // MARK: - Properties
     
     var onSelect: ((MedicationStatus) -> Void)?
     
     // MARK: - UI Components
-    
-    private let dimmedView = UIView().then {
-        $0.backgroundColor = UIColor.black.withAlphaComponent(0.4)
-    }
     
     private let containerView = UIView().then {
         $0.backgroundColor = Colors.white
@@ -63,10 +59,8 @@ final class MedicationPopupViewController: UIViewController {
     
     // MARK: - Initializer
     
-    init() {
-        super.init(nibName: nil, bundle: nil)
-        modalPresentationStyle = .overFullScreen
-        modalTransitionStyle = .crossDissolve
+    override init() {
+        super.init()
     }
     
     required init?(coder: NSCoder) {
@@ -85,7 +79,6 @@ final class MedicationPopupViewController: UIViewController {
     // MARK: - Setup
     
     private func setupUI() {
-        view.addSubview(dimmedView)
         view.addSubview(containerView)
         
         containerView.addSubview(titleLabel)
@@ -94,14 +87,9 @@ final class MedicationPopupViewController: UIViewController {
     }
     
     private func setupLayout() {
-        dimmedView.snp.makeConstraints {
-            $0.edges.equalToSuperview()
-        }
-        
         containerView.snp.makeConstraints {
             $0.center.equalToSuperview()
             $0.leading.trailing.equalToSuperview().inset(40)
-            // height is automatic
         }
         
         titleLabel.snp.makeConstraints {
@@ -112,20 +100,23 @@ final class MedicationPopupViewController: UIViewController {
         takenButton.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(20)
             $0.leading.trailing.equalToSuperview().inset(20)
-            $0.height.equalTo(48)
+            $0.height.equalTo(72)
         }
         
         notTakenButton.snp.makeConstraints {
             $0.top.equalTo(takenButton.snp.bottom).offset(8)
             $0.leading.trailing.equalToSuperview().inset(20)
-            $0.height.equalTo(48)
+            $0.height.equalTo(72)
             $0.bottom.equalToSuperview().inset(24)
         }
     }
     
     private func setupActions() {
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(didTapDimmedView))
-        dimmedView.addGestureRecognizer(tapGesture)
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(didTapBackground))
+        view.addGestureRecognizer(tapGesture)
+        
+        let containerTap = UITapGestureRecognizer(target: self, action: nil)
+        containerView.addGestureRecognizer(containerTap)
         
         takenButton.addTarget(self, action: #selector(didTapTaken), for: .touchUpInside)
         notTakenButton.addTarget(self, action: #selector(didTapNotTaken), for: .touchUpInside)
@@ -133,7 +124,7 @@ final class MedicationPopupViewController: UIViewController {
     
     // MARK: - Actions
     
-    @objc private func didTapDimmedView() {
+    @objc private func didTapBackground() {
         dismiss(animated: true)
     }
     
@@ -147,4 +138,3 @@ final class MedicationPopupViewController: UIViewController {
         dismiss(animated: true)
     }
 }
-

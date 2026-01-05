@@ -2,7 +2,7 @@ import UIKit
 import SnapKit
 import Then
 
-final class MealInputViewController: UIViewController {
+final class MealInputViewController: DimmedViewController {
     
     // MARK: - Properties
     
@@ -14,7 +14,16 @@ final class MealInputViewController: UIViewController {
         }
     }
     
+    private var containerBottomConstraint: Constraint?
+    
     // MARK: - UI Components
+    
+    private let containerView = UIView().then {
+        $0.backgroundColor = Colors.white
+        $0.layer.cornerRadius = 20
+        $0.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+        $0.clipsToBounds = true
+    }
     
     private let titleLabel = UILabel().then {
         $0.text = "어떻게 드셨나요?"
@@ -50,32 +59,16 @@ final class MealInputViewController: UIViewController {
         $0.numberOfLines = 0
     }
     
-    private lazy var accessoryView: UIView = {
-        let view = UIView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 56))
-        view.backgroundColor = Colors.Gray.g200
-        
-        let button = UIButton(type: .system)
-        button.setTitle("완료", for: .normal)
-        button.setTitleColor(Colors.white, for: .normal)
-        button.titleLabel?.font = .ieum(UIFont.IeumFont.Text.bodyM)
-        button.addTarget(self, action: #selector(didTapDone), for: .touchUpInside)
-        
-        view.addSubview(button)
-        button.snp.makeConstraints {
-            $0.edges.equalToSuperview()
-        }
-        return view
-    }()
+    private let doneButton = IeumButton(title: "완료", radius: 0).then {
+        $0.titleLabel?.font = .ieum(UIFont.IeumFont.Btn.large)
+        $0.setStyle(backgroundColor: Colors.Treatment.buttonBackground, titleColor: Colors.white, for: .normal)
+        $0.setStyle(backgroundColor: Colors.Gray.g200, titleColor: Colors.Gray.g400, for: .disabled)
+    }
     
     // MARK: - Initializer
     
-    init() {
-        super.init(nibName: nil, bundle: nil)
-        modalPresentationStyle = .pageSheet
-        if let sheet = sheetPresentationController {
-            sheet.detents = [.medium(), .large()]
-            sheet.prefersGrabberVisible = true
-        }
+    override init() {
+        super.init()
     }
     
     required init?(coder: NSCoder) {
@@ -86,17 +79,25 @@ final class MealInputViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = Colors.white
+        
         setupUI()
         setupLayout()
+        setupActions()
         updateChipSelection()
         
-        textView.inputAccessoryView = accessoryView
+        setupKeyboardObservers()
+        
+        doneButton.isEnabled = true
     }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         textView.becomeFirstResponder()
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        removeKeyboardObservers()
     }
     
     // MARK: - Setup
@@ -106,13 +107,11 @@ final class MealInputViewController: UIViewController {
         button.setTitle(title, for: .normal)
         button.setTitleColor(Colors.Gray.g600, for: .normal)
         button.titleLabel?.font = .ieum(UIFont.IeumFont.Text.bodySmall)
-        button.layer.cornerRadius = 20 // 40 height / 2
+        button.layer.cornerRadius = 20
         button.layer.borderWidth = 1
         button.layer.borderColor = Colors.Gray.g200.cgColor
         
-        // 아이콘 설정 (시스템 이미지 예시)
-        // 실제로는 icon 파라미터 사용해야 함
-        let image = UIImage(systemName: "face.smiling") // 임시
+        let image = UIImage(systemName: "face.smiling")
         button.setImage(image, for: .normal)
         button.tintColor = Colors.Gray.g600
         button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -4, bottom: 0, right: 4)
@@ -125,17 +124,25 @@ final class MealInputViewController: UIViewController {
     }
     
     private func setupUI() {
-        view.addSubview(titleLabel)
-        view.addSubview(chipsStackView)
+        view.addSubview(containerView)
+        containerView.addSubview(titleLabel)
+        containerView.addSubview(chipsStackView)
         chipsStackView.addArrangedSubview(goodChip)
         chipsStackView.addArrangedSubview(littleChip)
         chipsStackView.addArrangedSubview(badChip)
         
-        view.addSubview(textView)
+        containerView.addSubview(textView)
         textView.addSubview(placeholderLabel)
+        
+        containerView.addSubview(doneButton)
     }
     
     private func setupLayout() {
+        containerView.snp.makeConstraints {
+            $0.leading.trailing.equalToSuperview()
+            self.containerBottomConstraint = $0.bottom.equalToSuperview().constraint
+        }
+        
         titleLabel.snp.makeConstraints {
             $0.top.equalToSuperview().offset(32)
             $0.leading.equalToSuperview().offset(20)
@@ -151,11 +158,17 @@ final class MealInputViewController: UIViewController {
             $0.top.equalTo(chipsStackView.snp.bottom).offset(20)
             $0.leading.trailing.equalToSuperview().inset(20)
             $0.height.equalTo(160)
+            $0.bottom.equalTo(doneButton.snp.top).offset(-24)
         }
         
         placeholderLabel.snp.makeConstraints {
             $0.top.leading.equalToSuperview().offset(16)
             $0.trailing.equalToSuperview().inset(16)
+        }
+        
+        doneButton.snp.makeConstraints {
+            $0.leading.trailing.bottom.equalToSuperview()
+            $0.height.equalTo(72)
         }
     }
     
@@ -168,8 +181,6 @@ final class MealInputViewController: UIViewController {
         
         for (btn, status) in chips {
             if status == selectedStatus {
-                // Primary.lime 대신 Lime.l400 또는 l100 등 적절한 색상 사용
-                // 배경은 연한 색, 글자/테두리는 진한 색 권장
                 btn.backgroundColor = Colors.Lime.l100
                 btn.layer.borderColor = Colors.Lime.l400.cgColor
                 btn.setTitleColor(Colors.Lime.l500, for: .normal)
@@ -183,12 +194,63 @@ final class MealInputViewController: UIViewController {
         }
     }
     
+    private func setupActions() {
+        doneButton.addTarget(self, action: #selector(didTapDone), for: .touchUpInside)
+        
+        let tap = UITapGestureRecognizer(target: self, action: #selector(didTapBackground))
+        view.addGestureRecognizer(tap)
+        
+        let containerTap = UITapGestureRecognizer(target: self, action: nil)
+        containerView.addGestureRecognizer(containerTap)
+    }
+    
+    private func setupKeyboardObservers() {
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+    
+    private func removeKeyboardObservers() {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
     // MARK: - Actions
     
     @objc private func didTapDone() {
         onComplete?(selectedStatus, textView.text)
         textView.resignFirstResponder()
         dismiss(animated: true)
+    }
+    
+    @objc private func didTapBackground() {
+        textView.resignFirstResponder()
+        dismiss(animated: true)
+    }
+    
+    // MARK: - Keyboard Handling
+    
+    @objc private func keyboardWillShow(notification: NSNotification) {
+        guard let userInfo = notification.userInfo,
+              let keyboardFrame = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
+              let duration = userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else { return }
+        
+        let keyboardHeight = keyboardFrame.height
+        
+        containerBottomConstraint?.update(offset: -keyboardHeight)
+        
+        UIView.animate(withDuration: duration) {
+            self.view.layoutIfNeeded()
+        }
+    }
+    
+    @objc private func keyboardWillHide(notification: NSNotification) {
+        guard let userInfo = notification.userInfo,
+              let duration = userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else { return }
+        
+        containerBottomConstraint?.update(offset: 0)
+        
+        UIView.animate(withDuration: duration) {
+            self.view.layoutIfNeeded()
+        }
     }
 }
 
@@ -197,4 +259,3 @@ extension MealInputViewController: UITextViewDelegate {
         placeholderLabel.isHidden = !textView.text.isEmpty
     }
 }
-
