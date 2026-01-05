@@ -302,11 +302,11 @@ final class TreatmentRecordViewController: UIViewController {
         // Mood
         if let mood = model.mood, mood >= 1 && mood <= 5 {
             let moodImages = [
-                "feeling-very-bad",
-                "feeling-bad",
-                "feeling-normal",
+                "feeling-very-good",
                 "feeling-good",
-                "feeling-very-good"
+                "feeling-normal",
+                "feeling-bad",
+                "feeling-very-bad"
             ]
             moodImageView.image = UIImage(named: moodImages[mood - 1])
         } else {

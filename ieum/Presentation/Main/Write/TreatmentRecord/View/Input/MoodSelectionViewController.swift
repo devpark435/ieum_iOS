@@ -2,7 +2,7 @@ import UIKit
 import SnapKit
 import Then
 
-final class MoodSelectionViewController: UIViewController {
+final class MoodSelectionViewController: DimmedViewController {
     
     // MARK: - Properties
     
@@ -34,10 +34,6 @@ final class MoodSelectionViewController: UIViewController {
     ]
     
     // MARK: - UI Components
-    
-    private let blurEffectView = UIVisualEffectView(effect: UIBlurEffect(style: .dark)).then {
-        $0.alpha = 0.4
-    }
     
     private let containerView = UIView().then {
         $0.backgroundColor = Colors.white
@@ -104,10 +100,8 @@ final class MoodSelectionViewController: UIViewController {
     
     // MARK: - Initializer
     
-    init() {
-        super.init(nibName: nil, bundle: nil)
-        modalPresentationStyle = .overFullScreen
-        modalTransitionStyle = .crossDissolve
+    override init() {
+        super.init()
     }
     
     required init?(coder: NSCoder) {
@@ -161,7 +155,6 @@ final class MoodSelectionViewController: UIViewController {
     // MARK: - Setup
     
     private func setupUI() {
-        view.addSubview(blurEffectView)
         view.addSubview(containerView)
         
         containerView.addSubview(titleLabel)
@@ -176,10 +169,6 @@ final class MoodSelectionViewController: UIViewController {
     }
     
     private func setupLayout() {
-        blurEffectView.snp.makeConstraints {
-            $0.edges.equalToSuperview()
-        }
-        
         containerView.snp.makeConstraints {
             $0.center.equalToSuperview()
             $0.leading.trailing.equalToSuperview().inset(24)
@@ -234,7 +223,8 @@ final class MoodSelectionViewController: UIViewController {
     
     private func setupActions() {
         let tap = UITapGestureRecognizer(target: self, action: #selector(didTapBackground))
-        blurEffectView.addGestureRecognizer(tap)
+        // DimmedViewController의 view에 제스처 추가 (블러/딤 영역 탭 시 닫기)
+        view.addGestureRecognizer(tap)
         
         leftArrowButton.addTarget(self, action: #selector(didTapLeft), for: .touchUpInside)
         rightArrowButton.addTarget(self, action: #selector(didTapRight), for: .touchUpInside)
