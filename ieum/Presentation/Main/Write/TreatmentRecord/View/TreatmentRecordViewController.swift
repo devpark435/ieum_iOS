@@ -2,6 +2,7 @@ import UIKit
 import SnapKit
 import Then
 import Combine
+import PhotosUI
 
 final class TreatmentRecordViewController: UIViewController {
     
@@ -108,9 +109,27 @@ final class TreatmentRecordViewController: UIViewController {
         
         setupUI()
         setupLayout()
+        setupActions()
         bindViewModel()
         
         closeButton.addTarget(self, action: #selector(didTapClose), for: .touchUpInside)
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        
+        if let sublayers = bottomGradientView.layer.sublayers, !sublayers.isEmpty {
+            sublayers.first?.frame = bottomGradientView.bounds
+        } else {
+            let gradientLayer = CAGradientLayer()
+            gradientLayer.frame = bottomGradientView.bounds
+            gradientLayer.colors = [
+                Colors.Slate.s100.withAlphaComponent(0).cgColor,
+                Colors.Slate.s100.cgColor
+            ]
+            gradientLayer.locations = [0.0, 1.0]
+            bottomGradientView.layer.addSublayer(gradientLayer)
+        }
     }
     
     // MARK: - Setup
@@ -213,25 +232,144 @@ final class TreatmentRecordViewController: UIViewController {
         }
     }
     
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
+    private func setupActions() {
+        // 기분 선택
+        changeMoodButton.addTarget(self, action: #selector(didTapChangeMood), for: .touchUpInside)
+        let moodTap = UITapGestureRecognizer(target: self, action: #selector(didTapChangeMood))
+        moodImageView.isUserInteractionEnabled = true
+        moodImageView.addGestureRecognizer(moodTap)
         
-        if let sublayers = bottomGradientView.layer.sublayers, !sublayers.isEmpty {
-            sublayers.first?.frame = bottomGradientView.bounds
-        } else {
-            let gradientLayer = CAGradientLayer()
-            gradientLayer.frame = bottomGradientView.bounds
-            gradientLayer.colors = [
-                Colors.Slate.s100.withAlphaComponent(0).cgColor,
-                Colors.Slate.s100.cgColor
-            ]
-            gradientLayer.locations = [0.0, 1.0]
-            bottomGradientView.layer.addSublayer(gradientLayer)
+        // 특이증상
+        symptomItem.onTap = { [weak self] in
+            let vc = TextInputViewController(title: "어떤 특이증상이 있었나요?", placeholder: "특이증상을 적어주세요")
+            vc.onComplete = { text in
+                self?.viewModel.updateSymptom(text)
+            }
+            self?.present(vc, animated: true)
         }
+        
+        // 복약
+        medicationItem.onTap = { [weak self] in
+            let vc = MedicationPopupViewController()
+            vc.onSelect = { status in
+                self?.viewModel.updateMedication(status)
+            }
+            self?.present(vc, animated: true)
+        }
+        
+        // 식이상태
+        mealItem.onTap = { [weak self] in
+            let vc = MealInputViewController()
+            vc.onComplete = { status, text in
+                self?.viewModel.updateMeal(status: status, description: text)
+            }
+            self?.present(vc, animated: true)
+        }
+        
+        // 메모
+        memoItem.onTap = { [weak self] in
+            let vc = TextInputViewController(title: "더 남기고싶은 이야기가 있나요?", placeholder: "추가로 남기고싶은 글을 자유롭게 적어주세요.")
+            vc.onComplete = { text in
+                self?.viewModel.updateMemo(text)
+            }
+            self?.present(vc, animated: true)
+        }
+        
+        // 사진 추가
+        photoItem.onTap = { [weak self] in
+            self?.presentPhotoPicker()
+        }
+        
+        // 게시하기
+        postButton.addTarget(self, action: #selector(didTapPost), for: .touchUpInside)
     }
     
     private func bindViewModel() {
-        // TODO: ViewModel Binding
+        viewModel.$recordModel
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] model in
+                self?.updateUI(with: model)
+            }
+            .store(in: &cancellables)
+        
+        viewModel.$isPostButtonEnabled
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.isEnabled, on: postButton)
+            .store(in: &cancellables)
+    }
+    
+    private func updateUI(with model: TreatmentRecordModel) {
+        // Mood
+        if let mood = model.mood, mood >= 1 && mood <= 5 {
+            let moodImages = [
+                "feeling-very-bad",
+                "feeling-bad",
+                "feeling-normal",
+                "feeling-good",
+                "feeling-very-good"
+            ]
+            moodImageView.image = UIImage(named: moodImages[mood - 1])
+        } else {
+            moodImageView.image = UIImage(named: "feeling-unselected")
+        }
+        
+        // Symptom
+        if let symptom = model.symptom, !symptom.isEmpty {
+            symptomItem.updateContent(text: symptom)
+            // 완료 상태 뱃지는 텍스트 입력 시엔 별도로 없는 것으로 보임 (이미지 참고)
+            // 필요하다면 아이콘 체크 등으로 표시 가능
+            symptomItem.reset() // 초기화 후 다시 설정?
+            symptomItem.updateContent(text: symptom)
+        } else {
+            symptomItem.reset()
+        }
+        
+        // Medication
+        if let medication = model.medication {
+            let color = medication == .taken ? Colors.Lime.l400 : Colors.Red.r500
+            let iconName = medication == .taken ? "checkmark.circle.fill" : "xmark.circle.fill"
+            let icon = UIImage(systemName: iconName)?.withRenderingMode(.alwaysTemplate)
+            medicationItem.updateStatus(icon: icon, text: medication.rawValue, color: color)
+        } else {
+            medicationItem.reset()
+        }
+        
+        // Meal
+        if let meal = model.meal {
+            // TODO: 실제 아이콘 에셋 적용 필요, 임시로 시스템 이미지
+            let iconName = "face.smiling" // 임시
+            let icon = UIImage(systemName: iconName)?.withRenderingMode(.alwaysTemplate)
+            mealItem.updateStatus(icon: icon, text: meal.rawValue, color: Colors.Lime.l400)
+            mealItem.updateContent(text: model.mealDescription)
+        } else {
+            mealItem.reset()
+        }
+        
+        // Memo
+        if let memo = model.memo, !memo.isEmpty {
+            memoItem.updateContent(text: memo)
+        } else {
+            memoItem.reset()
+        }
+        
+        // Photos
+        if !model.photos.isEmpty {
+            photoItem.updatePhotos(images: model.photos)
+        } else {
+            photoItem.reset()
+        }
+    }
+    
+    // MARK: - Photo Picker
+    
+    private func presentPhotoPicker() {
+        var config = PHPickerConfiguration()
+        config.selectionLimit = 3
+        config.filter = .images
+        
+        let picker = PHPickerViewController(configuration: config)
+        picker.delegate = self
+        present(picker, animated: true)
     }
     
     // MARK: - Actions
@@ -239,5 +377,47 @@ final class TreatmentRecordViewController: UIViewController {
     @objc private func didTapClose() {
         dismiss(animated: true)
     }
+    
+    @objc private func didTapChangeMood() {
+        let vc = MoodSelectionViewController()
+        vc.onSelect = { [weak self] moodIndex in
+            self?.viewModel.updateMood(moodIndex)
+        }
+        present(vc, animated: true)
+    }
+    
+    @objc private func didTapPost() {
+        viewModel.didTapPost.send()
+        // dismiss or coordinator action
+        dismiss(animated: true)
+    }
 }
 
+// MARK: - PHPickerViewControllerDelegate
+
+extension TreatmentRecordViewController: PHPickerViewControllerDelegate {
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true)
+        
+        var selectedImages: [UIImage] = []
+        let dispatchGroup = DispatchGroup()
+        
+        for result in results {
+            dispatchGroup.enter()
+            if result.itemProvider.canLoadObject(ofClass: UIImage.self) {
+                result.itemProvider.loadObject(ofClass: UIImage.self) { image, error in
+                    if let image = image as? UIImage {
+                        selectedImages.append(image)
+                    }
+                    dispatchGroup.leave()
+                }
+            } else {
+                dispatchGroup.leave()
+            }
+        }
+        
+        dispatchGroup.notify(queue: .main) { [weak self] in
+            self?.viewModel.updatePhotos(selectedImages)
+        }
+    }
+}
