@@ -60,6 +60,13 @@ final class TreatmentRecordViewModel: ObservableObject {
         recordModel.photos = photos
     }
     
+    func removePhoto(at index: Int) {
+        guard index < recordModel.photos.count else { return }
+        var photos = recordModel.photos
+        photos.remove(at: index)
+        recordModel.photos = photos
+    }
+    
     func updatePublicStatus(_ isPublic: Bool) {
         recordModel.isPublic = isPublic
     }

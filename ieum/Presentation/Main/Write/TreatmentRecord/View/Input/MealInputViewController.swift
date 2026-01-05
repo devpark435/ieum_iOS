@@ -212,20 +212,10 @@ final class MealInputViewController: DimmedViewController {
                   let label = stack.arrangedSubviews.compactMap({ $0 as? UILabel }).first else { continue }
             
             if status == selectedStatus {
-                // 선택됨: Border Green 500, Text/Icon Color Green 500? or Gray 950?
-                // 요청: "선택한애가 볼더색이 바껴야해 00C950 그린 500"
-                // 텍스트 색상에 대한 언급은 없으나 보통 선택 시 강조됨.
-                // 기존 로직: Lime 계열이었음. -> Green 500 Border.
-                // 배경색 언급 없음 -> 흰색 유지 or 연한 그린? "선택한애가 볼더색이 바껴야해"만 언급됨.
-                // 배경은 흰색, Border Green 500, 텍스트/아이콘 색상은 변경 여부 불확실 -> 보통 Primary Color로 변경.
-                
+                // 선택됨: Border Green 500, Text/Icon Color Gray 950 (검정)
                 btn.backgroundColor = Colors.white
                 btn.layer.borderColor = Colors.Green.g500.cgColor
-                label.textColor = Colors.Green.g500
-                // Icon tint? Images might be colored assets. If template, tint. If not, keep original.
-                // Assuming template or tintable for now since user mentioned "new assets".
-                // If assets are colored images, tintColor won't affect them unless rendering mode is template.
-                // Let's assume we should tint or keep as is.
+                label.textColor = Colors.Gray.g950
             } else {
                 btn.backgroundColor = Colors.white
                 btn.layer.borderColor = Colors.Slate.s200.cgColor

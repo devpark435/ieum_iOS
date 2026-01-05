@@ -7,6 +7,7 @@ final class RecordItemView: UIView {
     // MARK: - Properties
     
     var onTap: (() -> Void)?
+    var onDeletePhoto: ((Int) -> Void)?
     
     // MARK: - UI Components
     
@@ -257,18 +258,20 @@ final class RecordItemView: UIView {
         }
     }
     
-    func updateStatus(icon: UIImage?, text: String, color: UIColor) {
+    func updateStatus(icon: UIImage?, text: String, iconColor: UIColor? = nil, textColor: UIColor = Colors.Slate.s900) {
         plusButton.isHidden = true
         statusChipView.isHidden = false
-        subtitleContainerView.isHidden = true // 완료 시 서브타이틀 숨김
+        subtitleContainerView.isHidden = true 
         
         statusIconView.image = icon
-        statusIconView.tintColor = color
+        if let iconColor = iconColor {
+            statusIconView.tintColor = iconColor
+        }
         
         statusLabel.text = text
-        statusLabel.textColor = color
+        statusLabel.textColor = textColor
         
-        statusChipView.backgroundColor = Colors.Slate.s50
+        statusChipView.backgroundColor = Colors.white
     }
     
     func updatePhotos(images: [UIImage]) {
@@ -284,7 +287,7 @@ final class RecordItemView: UIView {
         dividerView.isHidden = false
         
         photoStackView.isHidden = false
-        images.forEach { image in
+        images.enumerated().forEach { index, image in
             // 썸네일 컨테이너
             let container = UIView()
             container.snp.makeConstraints {
@@ -307,6 +310,8 @@ final class RecordItemView: UIView {
             deleteBtn.tintColor = Colors.Gray.g600
             deleteBtn.backgroundColor = Colors.white
             deleteBtn.layer.cornerRadius = 10
+            deleteBtn.tag = index // 인덱스 저장
+            deleteBtn.addTarget(self, action: #selector(didTapDeletePhoto(_:)), for: .touchUpInside)
             
             container.addSubview(deleteBtn)
             deleteBtn.snp.makeConstraints {
@@ -320,5 +325,9 @@ final class RecordItemView: UIView {
         // Spacer
         let spacer = UIView()
         photoStackView.addArrangedSubview(spacer)
+    }
+    
+    @objc private func didTapDeletePhoto(_ sender: UIButton) {
+        onDeletePhoto?(sender.tag)
     }
 }

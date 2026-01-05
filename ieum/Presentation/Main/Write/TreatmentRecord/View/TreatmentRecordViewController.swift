@@ -288,6 +288,10 @@ final class TreatmentRecordViewController: UIViewController {
             self?.presentPhotoPicker()
         }
         
+        photoItem.onDeletePhoto = { [weak self] index in
+            self?.viewModel.removePhoto(at: index)
+        }
+        
         // 게시하기
         postButton.addTarget(self, action: #selector(didTapPost), for: .touchUpInside)
     }
@@ -333,17 +337,21 @@ final class TreatmentRecordViewController: UIViewController {
             let color = medication == .taken ? Colors.Lime.l400 : Colors.Red.r500
             let iconName = medication == .taken ? "checkmark.circle.fill" : "xmark.circle.fill"
             let icon = UIImage(systemName: iconName)?.withRenderingMode(.alwaysTemplate)
-            medicationItem.updateStatus(icon: icon, text: medication.rawValue, color: color)
+            medicationItem.updateStatus(icon: icon, text: medication.rawValue, iconColor: color, textColor: Colors.Slate.s900)
         } else {
             medicationItem.reset()
         }
         
         // Meal
         if let meal = model.meal {
-            // TODO: 실제 아이콘 에셋 적용 필요, 임시로 시스템 이미지
-            let iconName = "face.smiling"
-            let icon = UIImage(systemName: iconName)?.withRenderingMode(.alwaysTemplate)
-            mealItem.updateStatus(icon: icon, text: meal.rawValue, color: Colors.Lime.l400)
+            let iconName: String
+            switch meal {
+            case .good: iconName = "meal-good"
+            case .little: iconName = "meal-small"
+            case .bad: iconName = "meal-poor"
+            }
+            let icon = UIImage(named: iconName)
+            mealItem.updateStatus(icon: icon, text: meal.rawValue, textColor: Colors.Slate.s900)
             mealItem.updateContent(text: model.mealDescription)
         } else {
             mealItem.reset()
