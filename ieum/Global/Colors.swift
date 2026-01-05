@@ -130,7 +130,7 @@ enum Colors {
         static let g200 = UIColor(hex: "#BBF7D0")
         static let g300 = UIColor(hex: "#86EFAC")
         static let g400 = UIColor(hex: "#4ADE80")
-        static let g500 = UIColor(hex: "#22C55E")
+        static let g500 = UIColor(hex: "#00C950") // Updated
         static let g600 = UIColor(hex: "#16A34A")
         static let g700 = UIColor(hex: "#15803D")
         static let g800 = UIColor(hex: "#166534")

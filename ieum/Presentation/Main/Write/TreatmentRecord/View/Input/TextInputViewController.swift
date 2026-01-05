@@ -22,7 +22,7 @@ final class TextInputViewController: DimmedViewController {
     }
     
     private let titleLabel = UILabel().then {
-        $0.font = .ieum(UIFont.IeumFont.Heading.h4)
+        $0.font = .ieum(UIFont.IeumFont.Heading.h2) // h4 -> h2
         $0.textColor = Colors.Gray.g950
     }
     

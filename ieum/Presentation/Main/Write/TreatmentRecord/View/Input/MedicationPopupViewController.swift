@@ -18,44 +18,31 @@ final class MedicationPopupViewController: DimmedViewController {
     
     private let titleLabel = UILabel().then {
         $0.text = "복약 상태는 어떤가요?"
-        $0.font = .ieum(UIFont.IeumFont.Heading.h4)
+        $0.font = .ieum(UIFont.IeumFont.Heading.h2) // h4 -> h2
         $0.textColor = Colors.Gray.g950
         $0.textAlignment = .left
     }
     
-    private let takenButton = UIButton().then {
-        $0.setTitle("완료", for: .normal)
-        $0.setTitleColor(Colors.Gray.g950, for: .normal)
-        $0.titleLabel?.font = .ieum(UIFont.IeumFont.Text.bodyM)
-        $0.layer.cornerRadius = 12
-        $0.layer.borderWidth = 1
-        $0.layer.borderColor = Colors.Gray.g200.cgColor
-        $0.contentHorizontalAlignment = .left
-        $0.contentEdgeInsets = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 0)
-        
-        let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .bold)
-        let image = UIImage(systemName: "checkmark.circle.fill", withConfiguration: config)
-        $0.setImage(image, for: .normal)
-        $0.tintColor = Colors.Lime.l400
-        $0.imageEdgeInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 8)
+    // 버튼 컨테이너 (Spacing 12)
+    private let buttonStackView = UIStackView().then {
+        $0.axis = .vertical
+        $0.spacing = 12
+        $0.distribution = .fillEqually
     }
     
-    private let notTakenButton = UIButton().then {
-        $0.setTitle("미완료", for: .normal)
-        $0.setTitleColor(Colors.Gray.g950, for: .normal)
-        $0.titleLabel?.font = .ieum(UIFont.IeumFont.Text.bodyM)
-        $0.layer.cornerRadius = 12
-        $0.layer.borderWidth = 1
-        $0.layer.borderColor = Colors.Gray.g200.cgColor
-        $0.contentHorizontalAlignment = .left
-        $0.contentEdgeInsets = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 0)
-        
-        let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .bold)
-        let image = UIImage(systemName: "xmark.circle.fill", withConfiguration: config)
-        $0.setImage(image, for: .normal)
-        $0.tintColor = Colors.Red.r500
-        $0.imageEdgeInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 8)
-    }
+    private lazy var takenButton = createSelectionButton(
+        title: "완료",
+        iconName: "checkmark.circle.fill",
+        color: Colors.Lime.l400,
+        action: #selector(didTapTaken)
+    )
+    
+    private lazy var notTakenButton = createSelectionButton(
+        title: "미완료",
+        iconName: "xmark.circle.fill",
+        color: Colors.Red.r500,
+        action: #selector(didTapNotTaken)
+    )
     
     // MARK: - Initializer
     
@@ -76,14 +63,70 @@ final class MedicationPopupViewController: DimmedViewController {
         setupActions()
     }
     
+    // MARK: - Helper
+    
+    private func createSelectionButton(title: String, iconName: String, color: UIColor, action: Selector) -> UIButton {
+        let button = UIButton()
+        button.backgroundColor = Colors.white
+        button.layer.cornerRadius = 12
+        button.layer.borderWidth = 1
+        button.layer.borderColor = Colors.Slate.s200.cgColor // 기본 Border
+        
+        // Content Stack
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.spacing = 4 // 이모지랑 텍스트 사이 여백 4
+        stack.alignment = .center
+        stack.isUserInteractionEnabled = false
+        
+        let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .bold)
+        let image = UIImage(systemName: iconName, withConfiguration: config)
+        let iconView = UIImageView(image: image)
+        iconView.tintColor = color
+        iconView.contentMode = .scaleAspectFit
+        
+        let label = UILabel()
+        label.text = title
+        label.font = .ieum(UIFont.IeumFont.Text.bodyM)
+        label.textColor = Colors.Gray.g950
+        
+        stack.addArrangedSubview(iconView)
+        stack.addArrangedSubview(label)
+        
+        button.addSubview(stack)
+        stack.snp.makeConstraints {
+            $0.leading.equalToSuperview().inset(10) // 좌 10
+            $0.top.bottom.equalToSuperview().inset(14) // 상하 14
+            $0.trailing.lessThanOrEqualToSuperview().inset(10) // 우 10 (lessThanOrEqual)
+        }
+        
+        iconView.snp.makeConstraints {
+            $0.width.height.equalTo(24)
+        }
+        
+        button.addTarget(self, action: action, for: .touchUpInside)
+        
+        // Touch Highlight Logic (Optional: TouchDown 시 Border 변경 등)
+        button.addAction(UIAction(handler: { _ in
+            button.layer.borderColor = Colors.Green.g500.cgColor
+        }), for: .touchDown)
+        
+        button.addAction(UIAction(handler: { _ in
+             button.layer.borderColor = Colors.Slate.s200.cgColor
+        }), for: [.touchCancel, .touchUpOutside])
+        
+        return button
+    }
+    
     // MARK: - Setup
     
     private func setupUI() {
         view.addSubview(containerView)
         
         containerView.addSubview(titleLabel)
-        containerView.addSubview(takenButton)
-        containerView.addSubview(notTakenButton)
+        containerView.addSubview(buttonStackView)
+        buttonStackView.addArrangedSubview(takenButton)
+        buttonStackView.addArrangedSubview(notTakenButton)
     }
     
     private func setupLayout() {
@@ -97,18 +140,16 @@ final class MedicationPopupViewController: DimmedViewController {
             $0.leading.trailing.equalToSuperview().inset(20)
         }
         
-        takenButton.snp.makeConstraints {
+        buttonStackView.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(20)
             $0.leading.trailing.equalToSuperview().inset(20)
-            $0.height.equalTo(72)
-        }
-        
-        notTakenButton.snp.makeConstraints {
-            $0.top.equalTo(takenButton.snp.bottom).offset(8)
-            $0.leading.trailing.equalToSuperview().inset(20)
-            $0.height.equalTo(72)
             $0.bottom.equalToSuperview().inset(24)
         }
+        
+        // 버튼 높이는 내부 컨텐츠 패딩에 의해 결정되거나 고정할 수 있음.
+        // 기존 72 높이였으나, 패딩 요구사항(상하 14)에 따르면 내용물 높이 + 28이 됨.
+        // 텍스트 bodyM lineHeight 약 24 가정 시 24+28 = 52 정도.
+        // 버튼 높이 명시 안하면 StackView가 알아서 늘림.
     }
     
     private func setupActions() {
@@ -117,9 +158,6 @@ final class MedicationPopupViewController: DimmedViewController {
         
         let containerTap = UITapGestureRecognizer(target: self, action: nil)
         containerView.addGestureRecognizer(containerTap)
-        
-        takenButton.addTarget(self, action: #selector(didTapTaken), for: .touchUpInside)
-        notTakenButton.addTarget(self, action: #selector(didTapNotTaken), for: .touchUpInside)
     }
     
     // MARK: - Actions
@@ -129,12 +167,20 @@ final class MedicationPopupViewController: DimmedViewController {
     }
     
     @objc private func didTapTaken() {
-        onSelect?(.taken)
-        dismiss(animated: true)
+        // 선택 시 Border Color 변경 (Green 500) - UI Feedback
+        takenButton.layer.borderColor = Colors.Green.g500.cgColor
+        // 잠시 딜레이 후 dismiss? 또는 바로 dismiss
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.onSelect?(.taken)
+            self.dismiss(animated: true)
+        }
     }
     
     @objc private func didTapNotTaken() {
-        onSelect?(.notTaken)
-        dismiss(animated: true)
+        notTakenButton.layer.borderColor = Colors.Green.g500.cgColor
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.onSelect?(.notTaken)
+            self.dismiss(animated: true)
+        }
     }
 }

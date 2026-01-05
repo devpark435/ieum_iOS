@@ -27,20 +27,20 @@ final class MealInputViewController: DimmedViewController {
     
     private let titleLabel = UILabel().then {
         $0.text = "어떻게 드셨나요?"
-        $0.font = .ieum(UIFont.IeumFont.Heading.h4)
+        $0.font = .ieum(UIFont.IeumFont.Heading.h2) // h4 -> h2
         $0.textColor = Colors.Gray.g950
     }
     
     // Chips
     private let chipsStackView = UIStackView().then {
         $0.axis = .horizontal
-        $0.spacing = 8
+        $0.spacing = 12 // 버튼 사이 여백 12
         $0.distribution = .fillEqually
     }
     
-    private lazy var goodChip = createChip(title: "잘먹음", icon: "face-smile", status: .good)
-    private lazy var littleChip = createChip(title: "소량", icon: "face-neutral", status: .little)
-    private lazy var badChip = createChip(title: "못먹음", icon: "face-frown", status: .bad)
+    private lazy var goodChip = createChip(title: "잘먹음", icon: "meal-good", status: .good)
+    private lazy var littleChip = createChip(title: "소량", icon: "meal-small", status: .little)
+    private lazy var badChip = createChip(title: "못먹음", icon: "meal-poor", status: .bad)
     
     private lazy var textView = UITextView().then {
         $0.font = .ieum(UIFont.IeumFont.Text.bodyM)
@@ -104,21 +104,48 @@ final class MealInputViewController: DimmedViewController {
     
     private func createChip(title: String, icon: String, status: MealStatus) -> UIButton {
         let button = UIButton()
-        button.setTitle(title, for: .normal)
-        button.setTitleColor(Colors.Gray.g600, for: .normal)
-        button.titleLabel?.font = .ieum(UIFont.IeumFont.Text.bodySmall)
-        button.layer.cornerRadius = 20
-        button.layer.borderWidth = 1
-        button.layer.borderColor = Colors.Gray.g200.cgColor
         
-        let image = UIImage(systemName: "face.smiling")
-        button.setImage(image, for: .normal)
-        button.tintColor = Colors.Gray.g600
-        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -4, bottom: 0, right: 4)
+        button.backgroundColor = Colors.white
+        button.layer.cornerRadius = 16 // radius 16
+        button.layer.borderWidth = 1
+        button.layer.borderColor = Colors.Slate.s200.cgColor // 기본 Border
+        
+        // Custom Content Layout
+        // 좌우 10 상하 14 여백, 아이콘-텍스트 4 간격
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.spacing = 4
+        stack.alignment = .center
+        stack.isUserInteractionEnabled = false
+        
+        let iconView = UIImageView(image: UIImage(named: icon))
+        iconView.contentMode = .scaleAspectFit
+        
+        let label = UILabel()
+        label.text = title
+        label.font = .ieum(UIFont.IeumFont.Text.bodySmall) // 폰트 사이즈 확인 필요 (bodyM or bodySmall? 버튼이므로 bodyM?) -> bodySmall로 일단 설정
+        label.textColor = Colors.Gray.g600
+        
+        stack.addArrangedSubview(iconView)
+        stack.addArrangedSubview(label)
+        
+        button.addSubview(stack)
+        stack.snp.makeConstraints {
+            $0.top.bottom.equalToSuperview().inset(14)
+            $0.leading.trailing.equalToSuperview().inset(10)
+            $0.center.equalToSuperview()
+        }
+        
+        iconView.snp.makeConstraints {
+            $0.width.height.equalTo(24) // 아이콘 크기 적절히 조절
+        }
         
         button.addAction(UIAction(handler: { [weak self] _ in
             self?.selectedStatus = status
         }), for: UIControl.Event.touchUpInside)
+        
+        // Tag to identify labels/icons later if needed, or updateChipSelection updates styles directly
+        button.tag = status.hashValue 
         
         return button
     }
@@ -151,7 +178,7 @@ final class MealInputViewController: DimmedViewController {
         chipsStackView.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(20)
             $0.leading.trailing.equalToSuperview().inset(20)
-            $0.height.equalTo(40)
+            // Height determined by content padding
         }
         
         textView.snp.makeConstraints {
@@ -180,16 +207,29 @@ final class MealInputViewController: DimmedViewController {
         ]
         
         for (btn, status) in chips {
+            // Find label inside stack
+            guard let stack = btn.subviews.first(where: { $0 is UIStackView }) as? UIStackView,
+                  let label = stack.arrangedSubviews.compactMap({ $0 as? UILabel }).first else { continue }
+            
             if status == selectedStatus {
-                btn.backgroundColor = Colors.Lime.l100
-                btn.layer.borderColor = Colors.Lime.l400.cgColor
-                btn.setTitleColor(Colors.Lime.l500, for: .normal)
-                btn.tintColor = Colors.Lime.l500
+                // 선택됨: Border Green 500, Text/Icon Color Green 500? or Gray 950?
+                // 요청: "선택한애가 볼더색이 바껴야해 00C950 그린 500"
+                // 텍스트 색상에 대한 언급은 없으나 보통 선택 시 강조됨.
+                // 기존 로직: Lime 계열이었음. -> Green 500 Border.
+                // 배경색 언급 없음 -> 흰색 유지 or 연한 그린? "선택한애가 볼더색이 바껴야해"만 언급됨.
+                // 배경은 흰색, Border Green 500, 텍스트/아이콘 색상은 변경 여부 불확실 -> 보통 Primary Color로 변경.
+                
+                btn.backgroundColor = Colors.white
+                btn.layer.borderColor = Colors.Green.g500.cgColor
+                label.textColor = Colors.Green.g500
+                // Icon tint? Images might be colored assets. If template, tint. If not, keep original.
+                // Assuming template or tintable for now since user mentioned "new assets".
+                // If assets are colored images, tintColor won't affect them unless rendering mode is template.
+                // Let's assume we should tint or keep as is.
             } else {
                 btn.backgroundColor = Colors.white
-                btn.layer.borderColor = Colors.Gray.g200.cgColor
-                btn.setTitleColor(Colors.Gray.g600, for: .normal)
-                btn.tintColor = Colors.Gray.g600
+                btn.layer.borderColor = Colors.Slate.s200.cgColor
+                label.textColor = Colors.Gray.g600
             }
         }
     }

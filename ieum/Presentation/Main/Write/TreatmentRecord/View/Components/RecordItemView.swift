@@ -17,6 +17,7 @@ final class RecordItemView: UIView {
         $0.layer.borderColor = Colors.Slate.s200.cgColor
     }
     
+    // 전체 컨텐츠를 담는 메인 스택 (헤더 그룹 / 디바이더 / 내용)
     private let mainStackView = UIStackView().then {
         $0.axis = .vertical
         $0.spacing = 16
@@ -24,8 +25,16 @@ final class RecordItemView: UIView {
         $0.distribution = .fill
     }
     
-    // MARK: Header Area
-    private let headerView = UIView()
+    // MARK: Header Group (Icon+Title 줄과 Subtitle 줄을 묶음, 간격 2)
+    private let headerGroupStackView = UIStackView().then {
+        $0.axis = .vertical
+        $0.spacing = 2
+        $0.alignment = .fill
+        $0.distribution = .fill
+    }
+    
+    // 1. 첫 번째 줄: 아이콘, 타이틀, 액션 버튼
+    private let topRowView = UIView()
     
     private let iconImageView = UIImageView().then {
         $0.contentMode = .scaleAspectFit
@@ -46,8 +55,16 @@ final class RecordItemView: UIView {
         $0.setImage(UIImage(named: "circleplus-icon"), for: .normal)
     }
     
-    private let statusBadgeView = UIView().then {
+    private let statusChipView = UIView().then {
         $0.isHidden = true
+        $0.backgroundColor = Colors.Slate.s50
+        $0.layer.cornerRadius = 16
+    }
+    
+    private let statusContentStack = UIStackView().then {
+        $0.axis = .horizontal
+        $0.spacing = 4
+        $0.alignment = .center
     }
     
     private let statusIconView = UIImageView().then {
@@ -55,8 +72,11 @@ final class RecordItemView: UIView {
     }
     
     private let statusLabel = UILabel().then {
-        $0.font = .ieum(UIFont.IeumFont.Text.bodyXSmall)
+        $0.font = .ieum(UIFont.IeumFont.Text.bodySmall)
     }
+    
+    // 2. 두 번째 줄: 서브타이틀 (들여쓰기 적용을 위한 컨테이너 사용)
+    private let subtitleContainerView = UIView()
     
     private let subtitleLabel = UILabel().then {
         $0.font = .ieum(UIFont.IeumFont.Text.bodyXSmall)
@@ -64,17 +84,18 @@ final class RecordItemView: UIView {
         $0.numberOfLines = 0
     }
     
-    // MARK: Content Area (Text)
-    private let contentTextContainer = UIView().then {
-        $0.backgroundColor = Colors.Gray.g50
-        $0.layer.cornerRadius = 8
+    // MARK: Divider
+    private let dividerView = UIView().then {
+        $0.backgroundColor = Colors.Slate.s200
         $0.isHidden = true
     }
     
+    // MARK: Content Area (Text)
     private let contentLabel = UILabel().then {
-        $0.font = .ieum(UIFont.IeumFont.Text.bodySmall)
-        $0.textColor = Colors.Gray.g800
+        $0.font = .ieum(UIFont.IeumFont.Text.bodyXSmall)
+        $0.textColor = Colors.Slate.s500
         $0.numberOfLines = 0
+        $0.isHidden = true
     }
     
     // MARK: Content Area (Photos)
@@ -82,6 +103,7 @@ final class RecordItemView: UIView {
         $0.axis = .horizontal
         $0.spacing = 8
         $0.isHidden = true
+        $0.alignment = .leading
     }
     
     // MARK: - Initializer
@@ -118,38 +140,44 @@ final class RecordItemView: UIView {
         addSubview(containerView)
         containerView.addSubview(mainStackView)
         
-        // Header
-        mainStackView.addArrangedSubview(headerView)
-        headerView.addSubview(iconImageView)
-        headerView.addSubview(titleLabel)
-        headerView.addSubview(rightActionContainer)
-        headerView.addSubview(subtitleLabel)
+        // Header Group에 TopRow와 Subtitle 추가
+        mainStackView.addArrangedSubview(headerGroupStackView)
+        headerGroupStackView.addArrangedSubview(topRowView)
+        headerGroupStackView.addArrangedSubview(subtitleContainerView)
         
-        rightActionContainer.addArrangedSubview(statusBadgeView)
+        // Top Row 구성
+        topRowView.addSubview(iconImageView)
+        topRowView.addSubview(titleLabel)
+        topRowView.addSubview(rightActionContainer)
+        
+        rightActionContainer.addArrangedSubview(statusChipView)
         rightActionContainer.addArrangedSubview(plusButton)
         
+        // Subtitle 구성
+        subtitleContainerView.addSubview(subtitleLabel)
+        
+        // Divider
+        mainStackView.addArrangedSubview(dividerView)
+        
         // Content (Text)
-        mainStackView.addArrangedSubview(contentTextContainer)
-        contentTextContainer.addSubview(contentLabel)
+        mainStackView.addArrangedSubview(contentLabel)
         
         // Content (Photos)
         mainStackView.addArrangedSubview(photoStackView)
     }
     
     private func setupStatusBadge() {
-        statusBadgeView.addSubview(statusIconView)
-        statusBadgeView.addSubview(statusLabel)
+        statusChipView.addSubview(statusContentStack)
+        statusContentStack.addArrangedSubview(statusIconView)
+        statusContentStack.addArrangedSubview(statusLabel)
         
-        statusIconView.snp.makeConstraints {
-            $0.leading.equalToSuperview()
-            $0.centerY.equalToSuperview()
-            $0.width.height.equalTo(16)
+        statusContentStack.snp.makeConstraints {
+            $0.top.bottom.equalToSuperview().inset(10)
+            $0.leading.trailing.equalToSuperview().inset(14)
         }
         
-        statusLabel.snp.makeConstraints {
-            $0.leading.equalTo(statusIconView.snp.trailing).offset(4)
-            $0.trailing.equalToSuperview()
-            $0.centerY.equalToSuperview()
+        statusIconView.snp.makeConstraints {
+            $0.width.height.equalTo(16)
         }
     }
     
@@ -162,9 +190,10 @@ final class RecordItemView: UIView {
             $0.edges.equalToSuperview().inset(UIEdgeInsets(top: 16, left: 18, bottom: 16, right: 18))
         }
         
-        // Header Layout
+        // Top Row Layout
         iconImageView.snp.makeConstraints {
             $0.top.leading.equalToSuperview()
+            $0.bottom.equalToSuperview() // 높이 결정
             $0.width.height.equalTo(24)
         }
         
@@ -176,28 +205,26 @@ final class RecordItemView: UIView {
         rightActionContainer.snp.makeConstraints {
             $0.centerY.equalTo(iconImageView)
             $0.trailing.equalToSuperview()
-            $0.height.equalTo(24)
         }
         
         plusButton.snp.makeConstraints {
             $0.width.height.equalTo(24)
         }
         
+        // Subtitle Layout (들여쓰기: 아이콘 24 + 간격 4 = 28)
         subtitleLabel.snp.makeConstraints {
-            $0.top.equalTo(iconImageView.snp.bottom).offset(2)
-            $0.leading.equalTo(titleLabel)
+            $0.top.bottom.equalToSuperview()
+            $0.leading.equalToSuperview().offset(28)
             $0.trailing.equalToSuperview()
-            $0.bottom.equalToSuperview() // HeaderView bottom
         }
         
-        // Content Text Layout
-        contentLabel.snp.makeConstraints {
-            $0.edges.equalToSuperview().inset(12)
+        dividerView.snp.makeConstraints {
+            $0.height.equalTo(1)
         }
         
-        // Photo Stack View Height (Images will determine width)
+        // Photo Stack View Height
         photoStackView.snp.makeConstraints {
-            $0.height.equalTo(64)
+            $0.height.equalTo(88)
         }
     }
     
@@ -205,32 +232,43 @@ final class RecordItemView: UIView {
     
     func reset() {
         plusButton.isHidden = false
-        statusBadgeView.isHidden = true
-        contentTextContainer.isHidden = true
+        statusChipView.isHidden = true
+        dividerView.isHidden = true
+        contentLabel.isHidden = true
+        contentLabel.text = nil
         photoStackView.isHidden = true
         photoStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        subtitleLabel.isHidden = false
+        
+        // 서브타이틀 표시
+        subtitleContainerView.isHidden = false
     }
     
     func updateContent(text: String?) {
         if let text = text, !text.isEmpty {
-            contentTextContainer.isHidden = false
+            dividerView.isHidden = false
+            contentLabel.isHidden = false
             contentLabel.text = text
-            // 텍스트가 있으면 서브타이틀을 숨길지 여부는 디자인에 따라 결정 (여기서는 유지)
+            
+            // 입력 시 Subtitle 영역 숨김 (StackView가 공간 제거)
+            subtitleContainerView.isHidden = true
+            plusButton.isHidden = true
         } else {
-            contentTextContainer.isHidden = true
+            reset()
         }
     }
     
     func updateStatus(icon: UIImage?, text: String, color: UIColor) {
         plusButton.isHidden = true
-        statusBadgeView.isHidden = false
+        statusChipView.isHidden = false
+        subtitleContainerView.isHidden = true // 완료 시 서브타이틀 숨김
         
         statusIconView.image = icon
         statusIconView.tintColor = color
         
         statusLabel.text = text
         statusLabel.textColor = color
+        
+        statusChipView.backgroundColor = Colors.Slate.s50
     }
     
     func updatePhotos(images: [UIImage]) {
@@ -241,18 +279,45 @@ final class RecordItemView: UIView {
             return
         }
         
+        plusButton.isHidden = true
+        subtitleContainerView.isHidden = true
+        dividerView.isHidden = false
+        
         photoStackView.isHidden = false
         images.forEach { image in
+            // 썸네일 컨테이너
+            let container = UIView()
+            container.snp.makeConstraints {
+                $0.width.height.equalTo(88)
+            }
+            
             let imageView = UIImageView(image: image)
             imageView.contentMode = .scaleAspectFill
             imageView.clipsToBounds = true
             imageView.layer.cornerRadius = 8
+            
+            container.addSubview(imageView)
             imageView.snp.makeConstraints {
-                $0.width.height.equalTo(64)
+                $0.edges.equalToSuperview()
             }
-            photoStackView.addArrangedSubview(imageView)
+            
+            // 삭제 버튼 (X)
+            let deleteBtn = UIButton()
+            deleteBtn.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
+            deleteBtn.tintColor = Colors.Gray.g600
+            deleteBtn.backgroundColor = Colors.white
+            deleteBtn.layer.cornerRadius = 10
+            
+            container.addSubview(deleteBtn)
+            deleteBtn.snp.makeConstraints {
+                $0.top.trailing.equalToSuperview().inset(4)
+                $0.width.height.equalTo(20)
+            }
+            
+            photoStackView.addArrangedSubview(container)
         }
-        // Spacer to align left
+        
+        // Spacer
         let spacer = UIView()
         photoStackView.addArrangedSubview(spacer)
     }
