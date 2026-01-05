@@ -184,7 +184,7 @@ final class RecordItemView: UIView {
         }
         
         subtitleLabel.snp.makeConstraints {
-            $0.top.equalTo(iconImageView.snp.bottom).offset(8)
+            $0.top.equalTo(iconImageView.snp.bottom).offset(2)
             $0.leading.equalTo(titleLabel)
             $0.trailing.equalToSuperview()
             $0.bottom.equalToSuperview() // HeaderView bottom
