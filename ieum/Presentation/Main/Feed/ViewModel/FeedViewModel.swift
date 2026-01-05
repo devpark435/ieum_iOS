@@ -6,6 +6,7 @@ final class FeedViewModel: ObservableObject {
     let viewDidLoad = PassthroughSubject<Void, Never>()
     let didSelectFilter = PassthroughSubject<String, Never>()
     let didTapWritePost = PassthroughSubject<Void, Never>()
+    let didTapComment = PassthroughSubject<Int, Never>()
     
     // Outputs
     @Published private(set) var isLoading = false
@@ -15,6 +16,7 @@ final class FeedViewModel: ObservableObject {
     
     // Navigation Events
     let showWritePost = PassthroughSubject<Void, Never>()
+    let navigateToComments = PassthroughSubject<Int, Never>()
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -41,6 +43,12 @@ final class FeedViewModel: ObservableObject {
             .sink { [weak self] in
                 print("FeedViewModel: didTapWritePost 수신됨")
                 self?.showWritePost.send()
+            }
+            .store(in: &cancellables)
+            
+        didTapComment
+            .sink { [weak self] postId in
+                self?.navigateToComments.send(postId)
             }
             .store(in: &cancellables)
     }

@@ -169,6 +169,13 @@ final class FeedViewController: UIViewController {
                 self?.showWritePostBottomSheet()
             }
             .store(in: &cancellables)
+            
+        viewModel.navigateToComments
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] postId in
+                self?.coordinator?.showComments(postId: postId)
+            }
+            .store(in: &cancellables)
         
         viewModel.$posts
             .receive(on: DispatchQueue.main)
@@ -245,9 +252,9 @@ extension FeedViewController: UITableViewDataSource {
             print("좋아요 탭: \(post.id)")
         }
         
-        cell.onCommentTapped = {
-            // TODO: 댓글 화면으로 이동
-            print("댓글 탭: \(post.id)")
+        cell.onCommentTapped = { [weak self] in
+            // 댓글 화면으로 이동
+            self?.viewModel.didTapComment.send(post.id)
         }
         
         cell.onBookmarkTapped = {

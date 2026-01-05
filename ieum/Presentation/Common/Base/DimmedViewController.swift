@@ -6,13 +6,13 @@ class DimmedViewController: UIViewController {
     
     // MARK: - UI Components
     
-    private let backgroundImageView = UIImageView().then {
+    let backgroundImageView = UIImageView().then {
         $0.contentMode = .scaleAspectFill
         $0.clipsToBounds = true
     }
     
     // 블러 위에 얹을 어두운 레이어 (투명도 조절)
-    private let dimmedOverlayView = UIView().then {
+    let dimmedOverlayView = UIView().then {
         $0.backgroundColor = Colors.black.withAlphaComponent(0.4) // 기본값 40%
     }
     
@@ -68,6 +68,10 @@ class DimmedViewController: UIViewController {
                 if let blurredImage = snapshot.applyBlur(radius: 14.5) {
                     DispatchQueue.main.async { [weak self] in
                         self?.backgroundImageView.image = blurredImage
+                        // Animate fade in if not already visible
+                        UIView.animate(withDuration: 0.3) {
+                            self?.backgroundImageView.alpha = 1
+                        }
                     }
                 }
             }

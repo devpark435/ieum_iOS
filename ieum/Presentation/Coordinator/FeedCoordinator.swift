@@ -34,5 +34,12 @@ final class FeedCoordinator: Coordinator {
         // TODO: 일상 기록 화면 이동 구현
         print("일상 기록 화면으로 이동")
     }
+    
+    func showComments(postId: Int) {
+        let viewModel = CommentViewModel(postId: postId)
+        let viewController = CommentViewController(viewModel: viewModel)
+        // DimmedViewController handles presentation style (.overFullScreen)
+        // Custom transition is handled inside CommentViewController
+        navigationController.present(viewController, animated: false)
+    }
 }
-
