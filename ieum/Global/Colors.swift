@@ -165,5 +165,11 @@ enum Colors {
         static let e600 = UIColor(hex: "#009966")
     }
     
+    // MARK: - Treatment Colors
+    enum Treatment {
+        static let buttonBackground = UIColor(hex: "#023651")
+        static let buttonBorder = UIColor(hex: "#01293E")
+    }
+    
     static let ieumBackground = UIColor(hex: "#FBFDF4")
 }
