@@ -306,7 +306,8 @@ final class FeedPostCell: UITableViewCell {
             $0.text = content
             $0.font = .ieum(UIFont.IeumFont.Text.bodyXSmall) // Content Font
             $0.textColor = Colors.Gray.g950
-            $0.numberOfLines = 0 // Allow multiline
+            $0.numberOfLines = 3 // Default to 3 lines
+            $0.tag = 100 // Tag to identify content label
         }
         
         container.addSubview(headerStack)
@@ -385,6 +386,7 @@ final class FeedPostCell: UITableViewCell {
             // Daily Post
             dailyContentLabel.isHidden = false
             dailyContentLabel.text = post.content
+            dailyContentLabel.numberOfLines = 3
             
             dailyContentLabel.snp.remakeConstraints {
                 $0.top.equalTo(actionBottomAnchor).offset(12)
@@ -392,41 +394,61 @@ final class FeedPostCell: UITableViewCell {
                 $0.trailing.equalToSuperview()
             }
             
-            // Check if text is long (Simplified check)
-            showSeeMore = post.content.count > 100 // Threshold for "See More"
+            // Check if text is long
+            // Roughly 80 chars or contains newlines might exceed 3 lines
+            showSeeMore = post.content.count > 80 || post.content.contains("\n")
             
         } else if post.type == .treatment || post.type == .wellness {
             // Wellness Post
             wellnessContainerView.isHidden = false
             
-            // 1. Mood
+            // 1. Mood (Index 0)
             let moodView = createMoodRow(mood: post.mood)
             wellnessContainerView.addArrangedSubview(moodView)
             
-            // 2. Items
+            // 2. Items (Index 1...)
             let items = post.displayItems
             for item in items {
                 let itemView = createTreatmentItemView(iconName: item.iconName, title: item.title, content: item.content)
                 wellnessContainerView.addArrangedSubview(itemView)
             }
             
+            // Layout Constraints
             wellnessContainerView.snp.remakeConstraints {
                 $0.top.equalTo(actionBottomAnchor).offset(12)
                 $0.leading.trailing.equalToSuperview()
             }
             
-            // For wellness posts, the last item's text usually needs "See More" if long.
-            // Or if there are many items. 
-            // In the reference image, "특이증상" has a long text and "더보기".
-            // Implementation: We apply 3-line limit to the *last label* in the stackView if it's long.
+            // Initial Visibility & See More Logic
+            // Rule: Show Mood (Idx 0) + First Item (Idx 1, max 3 lines).
+            // Hide subsequent items (Idx 2+).
+            // If there are subsequent items OR first item is long -> Show See More.
             
-            if let lastView = wellnessContainerView.arrangedSubviews.last,
-               let contentLabel = lastView.subviews.compactMap({ $0 as? UILabel }).last { // Assuming content label is last subview
-                // Apply limit to this label
-                contentLabel.numberOfLines = 3
-                // Check length of this specific content
-                if let text = contentLabel.text, text.count > 100 {
+            if items.count > 1 {
+                // If we have more than 1 item (e.g. Symptoms + Medication), we definitely need See More
+                // because we are hiding the 2nd item onwards.
+                showSeeMore = true
+            } else if let firstItemContent = items.first?.content {
+                // If only 1 item, check if it's long
+                if firstItemContent.count > 80 || firstItemContent.contains("\n") {
                     showSeeMore = true
+                }
+            }
+            
+            // Apply Initial State
+            for (index, view) in wellnessContainerView.arrangedSubviews.enumerated() {
+                if index == 0 {
+                    // Mood: Always visible
+                    view.isHidden = false
+                } else if index == 1 {
+                    // First Item: Visible, max 3 lines initially
+                    view.isHidden = false
+                    if let label = view.viewWithTag(100) as? UILabel {
+                        label.numberOfLines = 3
+                    }
+                } else {
+                    // Subsequent Items: Hidden initially
+                    view.isHidden = true
                 }
             }
         }
@@ -454,10 +476,19 @@ final class FeedPostCell: UITableViewCell {
             dailyContentLabel.numberOfLines = isExpanded ? 0 : 3
         } else if !wellnessContainerView.isHidden {
             // Wellness Expand
-            // Find the last content label and toggle its lines
-            if let lastView = wellnessContainerView.arrangedSubviews.last,
-               let contentLabel = lastView.subviews.compactMap({ $0 as? UILabel }).last {
-                contentLabel.numberOfLines = isExpanded ? 0 : 3
+            // Loop through subviews to update visibility and lines
+            for (index, view) in wellnessContainerView.arrangedSubviews.enumerated() {
+                if index == 0 { continue } // Mood is always visible
+                
+                if index == 1 {
+                    // First Item: Toggle lines
+                    if let label = view.viewWithTag(100) as? UILabel {
+                        label.numberOfLines = isExpanded ? 0 : 3
+                    }
+                } else {
+                    // Subsequent Items: Toggle visibility
+                    view.isHidden = !isExpanded
+                }
             }
         }
         
