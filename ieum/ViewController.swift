@@ -22,13 +22,13 @@ class ViewController: UIViewController {
         setupUI()
         setupLayout()
     }
-    
+
     // MARK: - Setup
     
     private func setupUI() {
-        
-    }
-    
+
+}
+
     private func setupLayout() {
         
     }

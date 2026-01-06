@@ -130,7 +130,7 @@ enum Colors {
         static let g200 = UIColor(hex: "#BBF7D0")
         static let g300 = UIColor(hex: "#86EFAC")
         static let g400 = UIColor(hex: "#4ADE80")
-        static let g500 = UIColor(hex: "#22C55E")
+        static let g500 = UIColor(hex: "#00C950") // Updated
         static let g600 = UIColor(hex: "#16A34A")
         static let g700 = UIColor(hex: "#15803D")
         static let g800 = UIColor(hex: "#166534")
@@ -158,6 +158,17 @@ enum Colors {
         static let l200 = UIColor(hex: "#D8F999")
         static let l400 = UIColor(hex: "#9AE600")
         static let l500 = UIColor(hex: "#7CCF00")
+    }
+    
+    // MARK: - Emerald
+    enum Emerald {
+        static let e600 = UIColor(hex: "#009966")
+    }
+    
+    // MARK: - Treatment Colors
+    enum Treatment {
+        static let buttonBackground = UIColor(hex: "#023651")
+        static let buttonBorder = UIColor(hex: "#01293E")
     }
     
     static let ieumBackground = UIColor(hex: "#FBFDF4")

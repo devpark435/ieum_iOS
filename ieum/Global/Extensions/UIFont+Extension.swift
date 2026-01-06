@@ -28,7 +28,8 @@ extension UIFont {
         // MARK: - Text
         enum Text {
             static let bodyM = style(size: 17, weight: .semibold, lineHeight: 140)
-            static let bodyXSmall = style(size: 15, weight: .regular, lineHeight: 140)
+            static let bodySmall = style(size: 17, weight: .medium, lineHeight: 140)
+            static let bodyXSmall = style(size: 15, weight: .medium, lineHeight: 140)
         }
         
         // MARK: - Helper
