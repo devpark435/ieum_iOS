@@ -198,6 +198,15 @@ final class DailyRecordViewController: UIViewController {
                 self?.dismiss(animated: true)
             }
             .store(in: &cancellables)
+            
+        viewModel.postSuccess
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                self?.dismiss(animated: true) {
+                    Toast.show(message: "일상기록 작성을 완료 하였습니다.")
+                }
+            }
+            .store(in: &cancellables)
     }
     
     // MARK: - Actions

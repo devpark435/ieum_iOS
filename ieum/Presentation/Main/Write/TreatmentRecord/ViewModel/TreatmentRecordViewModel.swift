@@ -6,6 +6,7 @@ final class TreatmentRecordViewModel: ObservableObject {
     // Inputs
     let didTapClose = PassthroughSubject<Void, Never>()
     let didTapPost = PassthroughSubject<Void, Never>()
+    let postSuccess = PassthroughSubject<Void, Never>()
     
     // Outputs
     @Published var recordModel = TreatmentRecordModel()
@@ -74,5 +75,10 @@ final class TreatmentRecordViewModel: ObservableObject {
     private func postRecord() {
         // TODO: API 호출 로직 구현
         print("Post Record: \(recordModel)")
+        
+        // Mock Success after delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            self?.postSuccess.send()
+        }
     }
 }

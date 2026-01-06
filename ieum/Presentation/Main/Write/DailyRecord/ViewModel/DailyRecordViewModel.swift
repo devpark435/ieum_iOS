@@ -22,6 +22,7 @@ final class DailyRecordViewModel: ObservableObject {
     
     // MARK: - Navigation
     let dismiss = PassthroughSubject<Void, Never>()
+    let postSuccess = PassthroughSubject<Void, Never>()
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -85,7 +86,7 @@ final class DailyRecordViewModel: ObservableObject {
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             self?.isLoading = false
-            self?.dismiss.send()
+            self?.postSuccess.send()
         }
     }
 }

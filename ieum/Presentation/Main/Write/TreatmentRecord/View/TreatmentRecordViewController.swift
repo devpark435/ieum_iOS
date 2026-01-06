@@ -308,6 +308,15 @@ final class TreatmentRecordViewController: UIViewController {
             .receive(on: DispatchQueue.main)
             .assign(to: \.isEnabled, on: postButton)
             .store(in: &cancellables)
+            
+        viewModel.postSuccess
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                self?.dismiss(animated: true) {
+                    Toast.show(message: "치료기록 작성을 완료 하였습니다.")
+                }
+            }
+            .store(in: &cancellables)
     }
     
     private func updateUI(with model: TreatmentRecordModel) {
@@ -400,8 +409,6 @@ final class TreatmentRecordViewController: UIViewController {
     
     @objc private func didTapPost() {
         viewModel.didTapPost.send()
-        // dismiss or coordinator action
-        dismiss(animated: true)
     }
 }
 
