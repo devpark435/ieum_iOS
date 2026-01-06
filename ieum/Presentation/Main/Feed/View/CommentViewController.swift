@@ -10,8 +10,11 @@ final class CommentViewController: DimmedViewController {
     private let viewModel: CommentViewModel
     private var cancellables = Set<AnyCancellable>()
     
+    // 키보드 처리를 위한 Bottom Constraint
     private var containerBottomConstraint: Constraint?
-    private lazy var containerHeight: CGFloat = view.frame.height * 0.8
+    
+    // 모달이 올라왔을 때의 Top 위치 (화면 상단에서 20% 내려온 위치)
+    private lazy var topOffset: CGFloat = view.frame.height * 0.2
     
     // MARK: - UI Components
     
@@ -22,17 +25,9 @@ final class CommentViewController: DimmedViewController {
         $0.clipsToBounds = true
     }
     
-    private let headerView = UIView()
-    
     private let dragHandleView = UIView().then {
         $0.backgroundColor = Colors.Gray.g300
         $0.layer.cornerRadius = 2.5
-    }
-    
-    private let headerLabel = UILabel().then {
-        $0.text = "댓글"
-        $0.font = .ieum(UIFont.IeumFont.Heading.h4)
-        $0.textColor = Colors.Gray.g950
     }
     
     private let tableView = UITableView().then {
@@ -40,7 +35,7 @@ final class CommentViewController: DimmedViewController {
         $0.separatorStyle = .none
         $0.showsVerticalScrollIndicator = false
         $0.register(CommentCell.self, forCellReuseIdentifier: CommentCell.identifier)
-        $0.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 80, right: 0) // Space for input
+        $0.contentInset = UIEdgeInsets(top: 24, left: 0, bottom: 24, right: 0) // Content Padding
     }
     
     private let commentInputView = CommentInputView()
@@ -72,6 +67,9 @@ final class CommentViewController: DimmedViewController {
         setupKeyboardObservers()
         
         viewModel.viewDidLoad.send()
+        
+        // 중요: 뷰가 로드되면 화면 아래로 내려놓음 (높이는 유지됨)
+        containerView.transform = CGAffineTransform(translationX: 0, y: view.frame.height)
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -84,10 +82,7 @@ final class CommentViewController: DimmedViewController {
     private func setupUI() {
         view.addSubview(containerView)
         
-        containerView.addSubview(headerView)
-        headerView.addSubview(dragHandleView)
-        headerView.addSubview(headerLabel)
-        
+        containerView.addSubview(dragHandleView)
         containerView.addSubview(tableView)
         containerView.addSubview(commentInputView)
         
@@ -96,16 +91,13 @@ final class CommentViewController: DimmedViewController {
     }
     
     private func setupLayout() {
+        // 제약조건은 "화면에 보이는 상태"를 기준으로 고정합니다.
         containerView.snp.makeConstraints {
             $0.leading.trailing.equalToSuperview()
-            // Start below screen
-            self.containerBottomConstraint = $0.bottom.equalToSuperview().offset(containerHeight).constraint
-            $0.height.equalTo(containerHeight)
-        }
-        
-        headerView.snp.makeConstraints {
-            $0.top.leading.trailing.equalToSuperview()
-            $0.height.equalTo(56)
+            // Top 고정 (키보드가 올라와도 상단은 움직이지 않음)
+            $0.top.equalToSuperview().offset(topOffset)
+            // Bottom은 키보드에 따라 움직임
+            self.containerBottomConstraint = $0.bottom.equalToSuperview().constraint
         }
         
         dragHandleView.snp.makeConstraints {
@@ -115,17 +107,14 @@ final class CommentViewController: DimmedViewController {
             $0.height.equalTo(5)
         }
         
-        headerLabel.snp.makeConstraints {
-            $0.center.equalToSuperview()
-        }
-        
+        // Input View pinned to bottom of container
         commentInputView.snp.makeConstraints {
             $0.leading.trailing.equalToSuperview()
-            $0.bottom.equalToSuperview().priority(.high) // Adjust with keyboard
+            $0.bottom.equalToSuperview() // Moves with container bottom
         }
         
         tableView.snp.makeConstraints {
-            $0.top.equalTo(headerView.snp.bottom)
+            $0.top.equalTo(dragHandleView.snp.bottom).offset(8)
             $0.leading.trailing.equalToSuperview()
             $0.bottom.equalTo(commentInputView.snp.top)
         }
@@ -139,7 +128,7 @@ final class CommentViewController: DimmedViewController {
         containerView.addGestureRecognizer(containerTap)
         
         let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePanGesture(_:)))
-        headerView.addGestureRecognizer(panGesture)
+        containerView.addGestureRecognizer(panGesture)
     }
     
     private func setupKeyboardObservers() {
@@ -160,7 +149,6 @@ final class CommentViewController: DimmedViewController {
             .sink { [weak self] comment in
                 if comment != nil {
                     self?.commentInputView.focus()
-                    // Optional: Update input placeholder or show indicator
                 }
             }
             .store(in: &cancellables)
@@ -184,17 +172,16 @@ final class CommentViewController: DimmedViewController {
         switch gesture.state {
         case .changed:
             if isDraggingDown {
-                containerBottomConstraint?.update(offset: translation.y)
-                view.layoutIfNeeded()
+                // 제약조건 대신 transform으로 이동
+                containerView.transform = CGAffineTransform(translationX: 0, y: translation.y)
             }
         case .ended:
             if translation.y > 150 {
                 animateDismiss()
             } else {
                 // Snap back
-                containerBottomConstraint?.update(offset: 0)
                 UIView.animate(withDuration: 0.3) {
-                    self.view.layoutIfNeeded()
+                    self.containerView.transform = .identity
                 }
             }
         default:
@@ -203,18 +190,19 @@ final class CommentViewController: DimmedViewController {
     }
     
     private func animateShow() {
-        containerBottomConstraint?.update(offset: 0)
+        // transform을 초기화하여 원래 위치로 올림
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseOut) {
-            self.view.layoutIfNeeded()
+            self.containerView.transform = .identity
             self.dimmedOverlayView.alpha = 1
         }
     }
     
     private func animateDismiss() {
         commentInputView.resign()
-        containerBottomConstraint?.update(offset: containerHeight)
+        
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseIn, animations: {
-            self.view.layoutIfNeeded()
+            // 화면 아래로 이동
+            self.containerView.transform = CGAffineTransform(translationX: 0, y: self.view.frame.height)
             self.dimmedOverlayView.alpha = 0
             self.backgroundImageView.alpha = 0
         }) { _ in
@@ -227,7 +215,6 @@ final class CommentViewController: DimmedViewController {
         
         let reportAction = UIAlertAction(title: "신고하기", style: .destructive) { [weak self] _ in
             self?.viewModel.didTapReport.send(commentId)
-            // Show confirmation toast/alert?
         }
         
         let cancelAction = UIAlertAction(title: "취소", style: .cancel)
@@ -247,16 +234,8 @@ final class CommentViewController: DimmedViewController {
         
         let keyboardHeight = keyboardFrame.height
         
-        // Since container is at bottom (offset 0), we move inputView up
-        // But inputView is inside container. 
-        // If container is not full height, keyboard might cover it.
-        // Container height is 80% screen.
-        // We should move the whole container up or just the input view?
-        // If we move input view up, it might cover table view content.
-        // Usually, the container stays, but its bottom is constrained to keyboard top.
-        // My container constraint is bottom of superview.
-        
-        containerBottomConstraint?.update(offset: -keyboardHeight)
+        // 키보드 높이만큼 Bottom Constraint을 올림 (컨테이너 높이가 줄어들며 입력창이 딸려 올라감)
+        containerBottomConstraint?.update(inset: keyboardHeight)
         
         UIView.animate(withDuration: duration) {
             self.view.layoutIfNeeded()
@@ -267,7 +246,8 @@ final class CommentViewController: DimmedViewController {
         guard let userInfo = notification.userInfo,
               let duration = userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else { return }
         
-        containerBottomConstraint?.update(offset: 0)
+        // Bottom Constraint 복구
+        containerBottomConstraint?.update(inset: 0)
         
         UIView.animate(withDuration: duration) {
             self.view.layoutIfNeeded()
@@ -294,6 +274,7 @@ extension CommentViewController: UITableViewDelegate, UITableViewDataSource {
         }
         
         let comment = viewModel.comments[indexPath.section]
+        let likeInfo = viewModel.likes[indexPath.row == 0 ? comment.id : comment.replies[indexPath.row - 1].id] ?? (false, 0)
         
         if indexPath.row == 0 {
             // Parent Comment
@@ -301,7 +282,9 @@ extension CommentViewController: UITableViewDelegate, UITableViewDataSource {
                 username: comment.nickname,
                 content: comment.content,
                 date: "1분 전", // Mock
-                isReply: false
+                isReply: false,
+                isLiked: likeInfo.isLiked,
+                likeCount: likeInfo.count
             )
             
             cell.onReplyTapped = { [weak self] in
@@ -312,24 +295,33 @@ extension CommentViewController: UITableViewDelegate, UITableViewDataSource {
                 self?.showReportActionSheet(for: comment.id)
             }
             
+            cell.onLikeTapped = { [weak self] in
+                self?.viewModel.didTapLike.send(comment.id)
+            }
+            
         } else {
             // Reply
             let reply = comment.replies[indexPath.row - 1]
+            let replyLikeInfo = viewModel.likes[reply.id] ?? (false, 0)
+            
             cell.configure(
                 username: reply.nickname,
                 content: reply.content,
                 date: "1분 전",
-                isReply: true
+                isReply: true,
+                isLiked: replyLikeInfo.isLiked,
+                likeCount: replyLikeInfo.count
             )
             
             cell.onMenuTapped = { [weak self] in
                 self?.showReportActionSheet(for: reply.id)
             }
-            // Replies to replies? Usually not supported or flattened.
-            // Model supports nesting but UI usually 1 level deep.
+            
+            cell.onLikeTapped = { [weak self] in
+                self?.viewModel.didTapLike.send(reply.id)
+            }
         }
         
         return cell
     }
 }
-

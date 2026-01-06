@@ -12,22 +12,22 @@ final class CommentInputView: UIView {
     
     private let profileImageView = UIImageView().then {
         $0.backgroundColor = Colors.Gray.g200
-        $0.layer.cornerRadius = 16
+        $0.layer.cornerRadius = 20 // Height 40 / 2
         $0.clipsToBounds = true
     }
     
     private let containerView = UIView().then {
         $0.backgroundColor = Colors.white
         $0.layer.borderWidth = 1
-        $0.layer.borderColor = Colors.Gray.g200.cgColor
-        $0.layer.cornerRadius = 20
+        $0.layer.borderColor = Colors.Gray.g950.cgColor
+        $0.layer.cornerRadius = 16
     }
     
     private lazy var textView = UITextView().then {
         $0.font = .ieum(UIFont.IeumFont.Text.bodyM)
         $0.textColor = Colors.Gray.g950
         $0.backgroundColor = .clear
-        $0.isScrollEnabled = false // Auto-expand
+        $0.isScrollEnabled = false
         $0.delegate = self
         $0.textContainerInset = .zero
         $0.textContainer.lineFragmentPadding = 0
@@ -40,11 +40,14 @@ final class CommentInputView: UIView {
     }
     
     private let sendButton = UIButton().then {
-        let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .bold)
+        let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)
         let image = UIImage(systemName: "arrow.up", withConfiguration: config)
         $0.setImage(image, for: .normal)
+        
+        // 아이콘 색상 설정
+        $0.tintColor = Colors.black
+        
         $0.backgroundColor = Colors.Lime.l400
-        $0.tintColor = Colors.white
         $0.layer.cornerRadius = 16
         $0.isHidden = true
     }
@@ -76,27 +79,26 @@ final class CommentInputView: UIView {
     }
     
     private func setupLayout() {
+        // Margins: 24pt
         profileImageView.snp.makeConstraints {
-            $0.leading.equalToSuperview().offset(20)
-            $0.bottom.equalToSuperview().offset(-12)
-            $0.width.height.equalTo(32)
+            $0.leading.equalToSuperview().offset(24)
+            $0.bottom.equalToSuperview().offset(-24)
+            $0.width.height.equalTo(40)
         }
         
         sendButton.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(20)
-            $0.bottom.equalToSuperview().offset(-12)
-            $0.width.height.equalTo(32)
+            $0.trailing.equalToSuperview().inset(24)
+            $0.bottom.equalToSuperview().offset(-24)
+            $0.width.equalTo(70)
+            $0.height.equalTo(40)
         }
         
         containerView.snp.makeConstraints {
             $0.leading.equalTo(profileImageView.snp.trailing).offset(12)
             $0.top.equalToSuperview().offset(8)
-            $0.bottom.equalToSuperview().offset(-8)
-            // Initial trailing: if button hidden, anchor to superview trailing? 
-            // Or always reserve space? 
-            // "입력전까지는 전송버튼이 안나오는거고" -> If not shown, maybe Input expands?
-            // Let's assume input expands.
-            $0.trailing.equalToSuperview().inset(20) 
+            $0.bottom.equalToSuperview().offset(-24)
+            $0.trailing.equalToSuperview().inset(24) // Initial state (Button hidden)
+            $0.height.greaterThanOrEqualTo(40)
         }
         
         textView.snp.makeConstraints {
@@ -104,7 +106,7 @@ final class CommentInputView: UIView {
             $0.trailing.equalToSuperview().offset(-16)
             $0.top.equalToSuperview().offset(10)
             $0.bottom.equalToSuperview().offset(-10)
-            $0.height.greaterThanOrEqualTo(20)
+            $0.height.greaterThanOrEqualTo(20).priority(.high) // Lower priority
             $0.height.lessThanOrEqualTo(100)
         }
         
@@ -151,16 +153,18 @@ extension CommentInputView: UITextViewDelegate {
             containerView.snp.remakeConstraints {
                 $0.leading.equalTo(profileImageView.snp.trailing).offset(12)
                 $0.top.equalToSuperview().offset(8)
-                $0.bottom.equalToSuperview().offset(-8)
-                $0.trailing.equalTo(sendButton.snp.leading).offset(-8)
+                $0.bottom.equalToSuperview().offset(-24)
+                $0.trailing.equalTo(sendButton.snp.leading).offset(-12)
+                $0.height.greaterThanOrEqualTo(40)
             }
         } else {
             // Button Hidden: Container trails to Superview
             containerView.snp.remakeConstraints {
                 $0.leading.equalTo(profileImageView.snp.trailing).offset(12)
                 $0.top.equalToSuperview().offset(8)
-                $0.bottom.equalToSuperview().offset(-8)
-                $0.trailing.equalToSuperview().inset(20)
+                $0.bottom.equalToSuperview().offset(-24)
+                $0.trailing.equalToSuperview().inset(24)
+                $0.height.greaterThanOrEqualTo(40)
             }
         }
     }

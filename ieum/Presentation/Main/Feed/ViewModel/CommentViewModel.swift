@@ -12,10 +12,12 @@ final class CommentViewModel {
     let didTapSend = PassthroughSubject<String, Never>()
     let didTapReply = PassthroughSubject<Comment, Never>()
     let didTapReport = PassthroughSubject<Int, Never>() // Comment ID
+    let didTapLike = PassthroughSubject<Int, Never>() // Comment ID
     
     // Outputs
     @Published private(set) var comments: [Comment] = []
     @Published private(set) var replyingTo: Comment? = nil
+    @Published private(set) var likes: [Int: (isLiked: Bool, count: Int)] = [:]
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -50,6 +52,12 @@ final class CommentViewModel {
         didTapReport
             .sink { [weak self] commentId in
                 self?.reportComment(id: commentId)
+            }
+            .store(in: &cancellables)
+            
+        didTapLike
+            .sink { [weak self] commentId in
+                self?.toggleLike(for: commentId)
             }
             .store(in: &cancellables)
     }
@@ -90,6 +98,13 @@ final class CommentViewModel {
         ]
         
         self.comments = mockComments
+        
+        // Mock Likes
+        self.likes = [
+            1: (isLiked: false, count: 5),
+            11: (isLiked: true, count: 2),
+            2: (isLiked: false, count: 0)
+        ]
     }
     
     private func postComment(content: String) {
@@ -145,6 +160,18 @@ final class CommentViewModel {
     
     private func reportComment(id: Int) {
         print("Report Comment ID: \(id)")
+    }
+    
+    private func toggleLike(for id: Int) {
+        guard let current = likes[id] else {
+            // Initialize if not exists
+            likes[id] = (isLiked: true, count: 1)
+            return
+        }
+        
+        let newIsLiked = !current.isLiked
+        let newCount = current.count + (newIsLiked ? 1 : -1)
+        likes[id] = (isLiked: newIsLiked, count: newCount)
     }
 }
 
