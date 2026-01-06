@@ -275,7 +275,7 @@ final class FeedPostCell: UITableViewCell {
         return container
     }
     
-    private func createTreatmentItemView(iconName: String, title: String, content: String) -> UIView {
+    private func createTreatmentItemView(item: Post.DisplayItem) -> UIView {
         let container = UIView()
         
         let headerStack = UIStackView().then {
@@ -284,13 +284,13 @@ final class FeedPostCell: UITableViewCell {
             $0.alignment = .center
         }
         
-        let iconView = UIImageView(image: UIImage(named: iconName)).then {
+        let iconView = UIImageView(image: UIImage(named: item.iconName)).then {
             $0.contentMode = .scaleAspectFit
             $0.tintColor = Colors.Gray.g950
         }
         
         let titleLabel = UILabel().then {
-            $0.text = title
+            $0.text = item.title
             $0.font = .ieum(UIFont.IeumFont.Text.bodyM) // Title Font
             $0.textColor = Colors.Gray.g950
         }
@@ -302,8 +302,89 @@ final class FeedPostCell: UITableViewCell {
             $0.width.height.equalTo(24)
         }
         
+        // Status Badge Logic
+        var statusView: UIView?
+        
+        switch item.type {
+        case .medication(let isTaken):
+            let badge = UIView()
+            let stack = UIStackView().then {
+                $0.axis = .horizontal
+                $0.spacing = 4
+                $0.alignment = .center
+            }
+            
+            let iconName = isTaken ? "checkmark.circle.fill" : "xmark.circle.fill"
+            let iconColor = isTaken ? Colors.Green.g500 : Colors.Gray.g400
+            let text = isTaken ? "복용 완료" : "미복용"
+            // Text color change to Black for better readability
+            let textColor = Colors.Gray.g950 
+            
+            let sIcon = UIImageView(image: UIImage(systemName: iconName)).then {
+                $0.tintColor = iconColor
+                $0.contentMode = .scaleAspectFit
+            }
+            let sLabel = UILabel().then {
+                $0.text = text
+                $0.textColor = textColor
+                $0.font = .ieum(UIFont.IeumFont.Text.bodySmall)
+            }
+            
+            stack.addArrangedSubview(sIcon)
+            stack.addArrangedSubview(sLabel)
+            badge.addSubview(stack)
+            
+            sIcon.snp.makeConstraints { $0.width.height.equalTo(16) }
+            stack.snp.makeConstraints { $0.edges.equalToSuperview() }
+            
+            statusView = badge
+            
+        case .diet(let amount):
+            let badge = UIView()
+            let stack = UIStackView().then {
+                $0.axis = .horizontal
+                $0.spacing = 4
+                $0.alignment = .center
+            }
+            
+            // Map amount to asset
+            let assetName: String
+            switch amount {
+            case .wellEaten, .normal: assetName = "meal-good"
+            case .little: assetName = "meal-small"
+            case .none: assetName = "meal-poor"
+            }
+            
+            let sIcon = UIImageView(image: UIImage(named: assetName)).then {
+                $0.contentMode = .scaleAspectFit
+            }
+            let sLabel = UILabel().then {
+                $0.text = amount.displayName
+                $0.textColor = Colors.Gray.g950
+                $0.font = .ieum(UIFont.IeumFont.Text.bodySmall)
+            }
+            
+            stack.addArrangedSubview(sIcon)
+            stack.addArrangedSubview(sLabel)
+            badge.addSubview(stack)
+            
+            sIcon.snp.makeConstraints { $0.width.height.equalTo(16) }
+            stack.snp.makeConstraints { $0.edges.equalToSuperview() }
+            
+            statusView = badge
+            
+        case .basic:
+            break
+        }
+        
+        if let statusView = statusView {
+            headerStack.addArrangedSubview(UIView()) // Spacer
+            headerStack.addArrangedSubview(statusView)
+        }
+        
+        // Content Label
         let contentLabel = UILabel().then {
-            $0.text = content
+            $0.text = item.content
             $0.font = .ieum(UIFont.IeumFont.Text.bodyXSmall) // Content Font
             $0.textColor = Colors.Gray.g950
             $0.numberOfLines = 3 // Default to 3 lines
@@ -311,15 +392,26 @@ final class FeedPostCell: UITableViewCell {
         }
         
         container.addSubview(headerStack)
-        container.addSubview(contentLabel)
+        
+        // Medication might not have content text displayed if it's empty
+        let hasContent = !item.content.isEmpty
+        if hasContent {
+            container.addSubview(contentLabel)
+        }
         
         headerStack.snp.makeConstraints {
             $0.top.leading.trailing.equalToSuperview()
         }
         
-        contentLabel.snp.makeConstraints {
-            $0.top.equalTo(headerStack.snp.bottom).offset(4)
-            $0.leading.trailing.bottom.equalToSuperview()
+        if hasContent {
+            contentLabel.snp.makeConstraints {
+                $0.top.equalTo(headerStack.snp.bottom).offset(4)
+                $0.leading.trailing.bottom.equalToSuperview()
+            }
+        } else {
+            headerStack.snp.makeConstraints {
+                $0.bottom.equalToSuperview() // If no content, header is bottom
+            }
         }
         
         return container
@@ -409,7 +501,7 @@ final class FeedPostCell: UITableViewCell {
             // 2. Items (Index 1...)
             let items = post.displayItems
             for item in items {
-                let itemView = createTreatmentItemView(iconName: item.iconName, title: item.title, content: item.content)
+                let itemView = createTreatmentItemView(item: item)
                 wellnessContainerView.addArrangedSubview(itemView)
             }
             

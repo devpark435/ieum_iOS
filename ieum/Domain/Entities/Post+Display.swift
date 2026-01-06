@@ -1,10 +1,17 @@
 import Foundation
 
 extension Post {
+    enum DisplayItemType {
+        case basic
+        case medication(isTaken: Bool)
+        case diet(amount: AmountEaten)
+    }
+
     struct DisplayItem {
         let iconName: String
         let title: String
         let content: String
+        let type: DisplayItemType
     }
     
     var displayItems: [DisplayItem] {
@@ -15,30 +22,28 @@ extension Post {
             items.append(DisplayItem(
                 iconName: "symptom-icon",
                 title: "특이증상",
-                content: unusualSymptoms
+                content: unusualSymptoms,
+                type: .basic
             ))
         }
         
         // 2. 복약
-        if type == .treatment || type == .wellness { // 치료/건강 기록일 경우에만 표시
-             // medicationTaken is non-optional Bool, always display?
-             // Or display only if explicitly recorded?
-             // Assuming always display for treatment type.
-            let medicationText = medicationTaken ? "복용 완료" : "미복용"
+        if type == .treatment || type == .wellness {
             items.append(DisplayItem(
                 iconName: "medication-icon",
                 title: "복약",
-                content: medicationText
+                content: "",
+                type: .medication(isTaken: medicationTaken)
             ))
         }
         
         // 3. 식이상태
         if let diet = diet {
-            let dietText = "\(diet.amountEaten.displayName)\n\(diet.mealContent)"
             items.append(DisplayItem(
                 iconName: "meal-icon",
                 title: "식이상태",
-                content: dietText
+                content: diet.mealContent,
+                type: .diet(amount: diet.amountEaten)
             ))
         }
         
@@ -47,7 +52,8 @@ extension Post {
             items.append(DisplayItem(
                 iconName: "memo-icon",
                 title: "메모",
-                content: memo
+                content: memo,
+                type: .basic
             ))
         }
         
