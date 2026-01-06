@@ -154,18 +154,15 @@ final class FeedViewController: UIViewController {
         
         adCardView.onLearnMoreTapped = {
             // TODO: 광고 상세 화면으로 이동
-            print("더 알아보기 탭")
         }
         
         floatingActionButton.onTapped = { [weak self] in
-            print("FloatingActionButton onTapped 호출됨")
             self?.viewModel.didTapWritePost.send()
         }
         
         viewModel.showWritePost
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in
-                print("FeedViewController: showWritePost 이벤트 수신됨")
                 self?.showWritePostBottomSheet()
             }
             .store(in: &cancellables)
@@ -187,8 +184,14 @@ final class FeedViewController: UIViewController {
     }
     
     private func updateTableViewHeight() {
-        let cellHeight: CGFloat = 500 // 임시 높이
-        let totalHeight = CGFloat(viewModel.posts.count) * cellHeight
+        // 테이블 뷰 높이 업데이트
+        // 셀의 높이가 동적이므로 contentSize를 사용하여 업데이트하거나,
+        // 테이블 뷰의 제약조건을 bottom에 맞추고 스크롤 가능하게 변경해야 할 수도 있음.
+        // 현재 구조: ScrollView -> ContentView -> TableView (isScrollEnabled=false)
+        
+        tableView.layoutIfNeeded() // 레이아웃 갱신
+        let totalHeight = tableView.contentSize.height
+        
         tableView.snp.updateConstraints {
             $0.height.equalTo(totalHeight)
         }
@@ -198,7 +201,6 @@ final class FeedViewController: UIViewController {
     
     @objc private func didTapNotification() {
         // TODO: 알림 리스트 화면으로 이동
-        print("알림 아이콘 탭")
     }
     
     private func showWritePostBottomSheet() {
@@ -237,19 +239,24 @@ extension FeedViewController: UITableViewDataSource {
         }
         
         let post = viewModel.posts[indexPath.row]
-        let firstImageUrl = post.images.first?.url
-        cell.configure(
-            username: post.userNickname,
-            imageUrl: firstImageUrl,
-            caption: post.content,
-            isLiked: post.isLiked,
-            likesCount: post.likesCount,
-            commentsCount: post.commentsCount
-        )
+        cell.configure(with: post)
+        
+        // 셀 확장 상태 업데이트
+        cell.onSeeMoreTapped = { [weak self] in
+            guard let self = self else { return }
+            
+            // 테이블 뷰 갱신 (셀 높이 재계산)
+            self.tableView.beginUpdates()
+            self.tableView.endUpdates()
+            
+            // 전체 높이 재조정 (약간의 딜레이를 주어 애니메이션 완료 후 정확한 크기 계산)
+            DispatchQueue.main.async {
+                self.updateTableViewHeight()
+            }
+        }
         
         cell.onLikeTapped = {
             // TODO: 좋아요 API 호출
-            print("좋아요 탭: \(post.id)")
         }
         
         cell.onCommentTapped = { [weak self] in
@@ -259,22 +266,14 @@ extension FeedViewController: UITableViewDataSource {
         
         cell.onBookmarkTapped = {
             // TODO: 북마크 API 호출
-            print("북마크 탭: \(post.id)")
         }
         
         cell.onShareTapped = {
             // TODO: 공유 기능
-            print("공유 탭: \(post.id)")
         }
         
         cell.onMenuTapped = {
             // TODO: 메뉴 표시
-            print("메뉴 탭: \(post.id)")
-        }
-        
-        cell.onSeeMoreTapped = {
-            // TODO: 전체 텍스트 보기
-            print("더보기 탭: \(post.id)")
         }
         
         return cell

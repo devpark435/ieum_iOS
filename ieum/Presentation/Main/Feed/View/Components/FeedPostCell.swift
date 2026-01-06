@@ -18,6 +18,7 @@ final class FeedPostCell: UITableViewCell {
     
     private var isLiked = false
     private var isBookmarked = false
+    private var isExpanded = false
     
     // MARK: - UI Components
     
@@ -46,6 +47,7 @@ final class FeedPostCell: UITableViewCell {
         $0.layer.cornerRadius = 16
     }
     
+    // Action Buttons
     private let leftActionStackView = UIStackView().then {
         $0.axis = .horizontal
         $0.spacing = 16
@@ -78,17 +80,34 @@ final class FeedPostCell: UITableViewCell {
         $0.tintColor = Colors.Gray.g950
     }
     
-    private let captionLabel = UILabel().then {
+    // MARK: - Content Views
+    
+    // Daily Post Content (Simple Text)
+    private let dailyContentLabel = UILabel().then {
         $0.font = .ieum(UIFont.IeumFont.Text.bodyXSmall)
         $0.textColor = Colors.Gray.g950
         $0.numberOfLines = 3
     }
     
+    // Wellness Post Content (Structured)
+    private let wellnessContainerView = UIStackView().then {
+        $0.axis = .vertical
+        $0.spacing = 12
+        $0.alignment = .fill
+    }
+    
+    // Common See More Button
     private let seeMoreButton = UIButton().then {
         $0.setTitle("더보기", for: .normal)
         $0.setTitleColor(Colors.Gray.g400, for: .normal)
         $0.titleLabel?.font = .ieum(UIFont.IeumFont.Text.bodyXSmall)
         $0.contentHorizontalAlignment = .left
+    }
+    
+    // Date Label
+    private let dateLabel = UILabel().then {
+        $0.font = .ieum(UIFont.IeumFont.Text.bodyXSmall) // Caption size?
+        $0.textColor = Colors.Gray.g400
     }
     
     // MARK: - Initializer
@@ -114,6 +133,7 @@ final class FeedPostCell: UITableViewCell {
         contentView.addSubview(usernameLabel)
         contentView.addSubview(menuButton)
         contentView.addSubview(postImageView)
+        
         contentView.addSubview(leftActionStackView)
         contentView.addSubview(rightActionStackView)
         
@@ -123,8 +143,10 @@ final class FeedPostCell: UITableViewCell {
         rightActionStackView.addArrangedSubview(bookmarkButton)
         rightActionStackView.addArrangedSubview(shareButton)
         
-        contentView.addSubview(captionLabel)
+        contentView.addSubview(dailyContentLabel)
+        contentView.addSubview(wellnessContainerView)
         contentView.addSubview(seeMoreButton)
+        contentView.addSubview(dateLabel)
     }
     
     private func setupLayout() {
@@ -177,17 +199,19 @@ final class FeedPostCell: UITableViewCell {
             $0.width.height.equalTo(24)
         }
         
-        captionLabel.snp.makeConstraints {
-            $0.top.equalTo(leftActionStackView.snp.bottom).offset(12)
-            $0.leading.equalToSuperview()
-            $0.trailing.equalToSuperview()
-        }
+        // Content Areas (Initially Hidden or 0 height)
+        // They will be remade in configure()
         
         seeMoreButton.snp.makeConstraints {
-            $0.top.equalTo(captionLabel.snp.bottom).offset(4)
+            $0.leading.equalToSuperview()
+            $0.height.equalTo(20)
+            // Top/Bottom dynamic
+        }
+        
+        dateLabel.snp.makeConstraints {
             $0.leading.equalToSuperview()
             $0.bottom.equalToSuperview().inset(16)
-            $0.height.equalTo(20)
+            $0.top.equalTo(seeMoreButton.snp.bottom).offset(4)
         }
     }
     
@@ -200,32 +224,244 @@ final class FeedPostCell: UITableViewCell {
         seeMoreButton.addTarget(self, action: #selector(didTapSeeMore), for: .touchUpInside)
     }
     
+    // MARK: - Helper Methods
+    
+    private func createMoodRow(mood: Int) -> UIView {
+        let container = UIView()
+        
+        let stack = UIStackView().then {
+            $0.axis = .horizontal
+            $0.spacing = 8
+            $0.alignment = .center
+        }
+        
+        // Mood Icon & Text
+        // Assuming mood int maps to some assets or text
+        let moodText: String
+        let moodIconName: String
+        
+        switch mood {
+        case 1: moodText = "아주 좋아요"; moodIconName = "feeling-very-good"
+        case 2: moodText = "좋아요"; moodIconName = "feeling-good"
+        case 3: moodText = "보통이에요"; moodIconName = "feeling-normal"
+        case 4: moodText = "나빠요"; moodIconName = "feeling-bad"
+        case 5: moodText = "아주 나빠요"; moodIconName = "feeling-very-bad"
+        default: moodText = "보통이에요"; moodIconName = "feeling-normal"
+        }
+        
+        let iconView = UIImageView(image: UIImage(named: moodIconName)).then {
+            $0.contentMode = .scaleAspectFit
+        }
+        
+        let label = UILabel().then {
+            $0.text = "오늘의 기분 : \(moodText)"
+            $0.font = .ieum(UIFont.IeumFont.Text.bodySmall) // Bold title-like?
+            $0.textColor = Colors.Gray.g950
+        }
+        
+        stack.addArrangedSubview(iconView)
+        stack.addArrangedSubview(label)
+        
+        container.addSubview(stack)
+        
+        iconView.snp.makeConstraints {
+            $0.width.height.equalTo(24)
+        }
+        
+        stack.snp.makeConstraints {
+            $0.edges.equalToSuperview()
+        }
+        
+        return container
+    }
+    
+    private func createTreatmentItemView(iconName: String, title: String, content: String) -> UIView {
+        let container = UIView()
+        
+        let headerStack = UIStackView().then {
+            $0.axis = .horizontal
+            $0.spacing = 4
+            $0.alignment = .center
+        }
+        
+        let iconView = UIImageView(image: UIImage(named: iconName)).then {
+            $0.contentMode = .scaleAspectFit
+            $0.tintColor = Colors.Gray.g950
+        }
+        
+        let titleLabel = UILabel().then {
+            $0.text = title
+            $0.font = .ieum(UIFont.IeumFont.Text.bodyM) // Title Font
+            $0.textColor = Colors.Gray.g950
+        }
+        
+        headerStack.addArrangedSubview(iconView)
+        headerStack.addArrangedSubview(titleLabel)
+        
+        iconView.snp.makeConstraints {
+            $0.width.height.equalTo(24)
+        }
+        
+        let contentLabel = UILabel().then {
+            $0.text = content
+            $0.font = .ieum(UIFont.IeumFont.Text.bodyXSmall) // Content Font
+            $0.textColor = Colors.Gray.g950
+            $0.numberOfLines = 0 // Allow multiline
+        }
+        
+        container.addSubview(headerStack)
+        container.addSubview(contentLabel)
+        
+        headerStack.snp.makeConstraints {
+            $0.top.leading.trailing.equalToSuperview()
+        }
+        
+        contentLabel.snp.makeConstraints {
+            $0.top.equalTo(headerStack.snp.bottom).offset(4)
+            $0.leading.trailing.bottom.equalToSuperview()
+        }
+        
+        return container
+    }
+    
     // MARK: - Configuration
     
-    func configure(
-        username: String,
-        imageUrl: String?,
-        caption: String,
-        isLiked: Bool = false,
-        likesCount: Int = 0,
-        commentsCount: Int = 0
-    ) {
-        usernameLabel.text = username
-        captionLabel.text = caption
-        self.isLiked = isLiked
+    func configure(with post: Post) {
+        usernameLabel.text = post.userNickname
+        isLiked = post.isLiked
         
-        // TODO: 이미지 URL로부터 이미지 로드 (Kingfisher 등 사용 예정)
-        if let imageUrl = imageUrl {
-            // 임시로 placeholder 표시
+        // Reset State
+        isExpanded = false
+        dailyContentLabel.numberOfLines = 3
+        dailyContentLabel.isHidden = true
+        wellnessContainerView.isHidden = true
+        wellnessContainerView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        seeMoreButton.setTitle("더보기", for: .normal)
+        
+        // Date
+        let date = Date(timeIntervalSince1970: TimeInterval(post.createdAt))
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy년 M월 d일"
+        dateLabel.text = formatter.string(from: date)
+        
+        // Image
+        if let firstImage = post.images.first {
             postImageView.image = nil
             postImageView.backgroundColor = Colors.Gray.g200
+            postImageView.isHidden = false
+            postImageView.snp.remakeConstraints {
+                $0.top.equalTo(profileImageView.snp.bottom).offset(12)
+                $0.leading.trailing.equalToSuperview()
+                $0.height.equalTo(300)
+            }
         } else {
-            postImageView.image = nil
-            postImageView.backgroundColor = Colors.Gray.g200
+            postImageView.isHidden = true
+            postImageView.snp.remakeConstraints {
+                $0.top.equalTo(profileImageView.snp.bottom).offset(0)
+                $0.leading.trailing.equalToSuperview()
+                $0.height.equalTo(0)
+            }
+        }
+        
+        // Layout anchor for content
+        let contentTopAnchor = postImageView.isHidden ? profileImageView.snp.bottom : postImageView.snp.bottom
+        // Actually, Actions are below image. Content is below Actions.
+        leftActionStackView.snp.remakeConstraints {
+            $0.top.equalTo(contentTopAnchor).offset(12)
+            $0.leading.equalToSuperview()
+        }
+        rightActionStackView.snp.remakeConstraints {
+            $0.top.equalTo(contentTopAnchor).offset(12)
+            $0.trailing.equalToSuperview()
+        }
+        
+        let actionBottomAnchor = leftActionStackView.snp.bottom
+        
+        // --- Content Logic ---
+        
+        var showSeeMore = false
+        
+        if post.type == .daily {
+            // Daily Post
+            dailyContentLabel.isHidden = false
+            dailyContentLabel.text = post.content
+            
+            dailyContentLabel.snp.remakeConstraints {
+                $0.top.equalTo(actionBottomAnchor).offset(12)
+                $0.leading.equalToSuperview()
+                $0.trailing.equalToSuperview()
+            }
+            
+            // Check if text is long (Simplified check)
+            showSeeMore = post.content.count > 100 // Threshold for "See More"
+            
+        } else if post.type == .treatment || post.type == .wellness {
+            // Wellness Post
+            wellnessContainerView.isHidden = false
+            
+            // 1. Mood
+            let moodView = createMoodRow(mood: post.mood)
+            wellnessContainerView.addArrangedSubview(moodView)
+            
+            // 2. Items
+            let items = post.displayItems
+            for item in items {
+                let itemView = createTreatmentItemView(iconName: item.iconName, title: item.title, content: item.content)
+                wellnessContainerView.addArrangedSubview(itemView)
+            }
+            
+            wellnessContainerView.snp.remakeConstraints {
+                $0.top.equalTo(actionBottomAnchor).offset(12)
+                $0.leading.trailing.equalToSuperview()
+            }
+            
+            // For wellness posts, the last item's text usually needs "See More" if long.
+            // Or if there are many items. 
+            // In the reference image, "특이증상" has a long text and "더보기".
+            // Implementation: We apply 3-line limit to the *last label* in the stackView if it's long.
+            
+            if let lastView = wellnessContainerView.arrangedSubviews.last,
+               let contentLabel = lastView.subviews.compactMap({ $0 as? UILabel }).last { // Assuming content label is last subview
+                // Apply limit to this label
+                contentLabel.numberOfLines = 3
+                // Check length of this specific content
+                if let text = contentLabel.text, text.count > 100 {
+                    showSeeMore = true
+                }
+            }
+        }
+        
+        seeMoreButton.isHidden = !showSeeMore
+        
+        seeMoreButton.snp.remakeConstraints {
+            if !dailyContentLabel.isHidden {
+                $0.top.equalTo(dailyContentLabel.snp.bottom).offset(4)
+            } else {
+                $0.top.equalTo(wellnessContainerView.snp.bottom).offset(4)
+            }
+            $0.leading.equalToSuperview()
+            $0.height.equalTo(showSeeMore ? 20 : 0)
         }
         
         updateLikeButton()
-        // TODO: 좋아요/댓글 수 표시 추가
+    }
+    
+    func toggleExpand() {
+        isExpanded.toggle()
+        
+        if !dailyContentLabel.isHidden {
+            // Daily Expand
+            dailyContentLabel.numberOfLines = isExpanded ? 0 : 3
+        } else if !wellnessContainerView.isHidden {
+            // Wellness Expand
+            // Find the last content label and toggle its lines
+            if let lastView = wellnessContainerView.arrangedSubviews.last,
+               let contentLabel = lastView.subviews.compactMap({ $0 as? UILabel }).last {
+                contentLabel.numberOfLines = isExpanded ? 0 : 3
+            }
+        }
+        
+        seeMoreButton.setTitle(isExpanded ? "접기" : "더보기", for: .normal)
     }
     
     private func updateLikeButton() {
@@ -267,7 +503,7 @@ final class FeedPostCell: UITableViewCell {
     }
     
     @objc private func didTapSeeMore() {
+        toggleExpand()
         onSeeMoreTapped?()
     }
 }
-
