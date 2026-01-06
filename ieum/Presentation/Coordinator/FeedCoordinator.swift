@@ -31,8 +31,9 @@ final class FeedCoordinator: Coordinator {
     }
     
     func showDailyRecord() {
-        // TODO: 일상 기록 화면 이동 구현
-        print("일상 기록 화면으로 이동")
+        let viewModel = DailyRecordViewModel()
+        let viewController = DailyRecordViewController(viewModel: viewModel)
+        navigationController.present(viewController, animated: true)
     }
     
     func showComments(postId: Int) {

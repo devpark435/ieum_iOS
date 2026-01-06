@@ -6,9 +6,12 @@ final class RecordShareView: UIView {
     
     // MARK: - Properties
     
+    var onCheckChanged: ((Bool) -> Void)?
+    
     var isChecked: Bool = false {
         didSet {
             updateCheckBoxState()
+            onCheckChanged?(isChecked)
         }
     }
     
