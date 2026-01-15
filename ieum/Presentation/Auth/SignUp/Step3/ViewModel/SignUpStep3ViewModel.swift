@@ -26,10 +26,11 @@ final class SignUpStep3ViewModel: ObservableObject {
         didTapNext
             .sink { [weak self] in
                 // TODO: 닉네임 중복 확인 API 호출 필요
-                print("닉네임 입력 완료: \(self?.nicknameText.value ?? "")")
+                let nickname = self?.nicknameText.value ?? ""
+                print("닉네임 입력 완료: \(nickname)")
+                SignUpDataManager.shared.nickname = nickname
                 self?.navigateToNext.send()
             }
             .store(in: &cancellables)
     }
 }
-

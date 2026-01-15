@@ -9,7 +9,7 @@ final class AppCoordinator: Coordinator {
     // MARK: - Development Mode
     /// 개발 모드: true로 설정하면 회원가입 과정을 건너뛰고 바로 메인 화면으로 이동
     /// 릴리즈 빌드 전에 반드시 false로 변경해야 합니다.
-    private let isDevelopmentMode: Bool = true
+    private let isDevelopmentMode: Bool = false
     
     init(window: UIWindow) {
         self.window = window

@@ -31,15 +31,28 @@ final class SignUpStep5ViewModel: ObservableObject {
         
         didTapSkip
             .sink { [weak self] in
+                SignUpDataManager.shared.ageGroup = nil
                 self?.navigateToNext.send()
             }
             .store(in: &cancellables)
         
         didTapNext
             .sink { [weak self] in
+                if let ageGroupTitle = self?.selectedAgeGroup {
+                    let ageGroup = self?.convertAgeGroup(title: ageGroupTitle)
+                    SignUpDataManager.shared.ageGroup = ageGroup
+                } else {
+                    SignUpDataManager.shared.ageGroup = nil
+                }
                 self?.navigateToNext.send()
             }
             .store(in: &cancellables)
     }
+    
+    private func convertAgeGroup(title: String) -> String? {
+        // UI 텍스트 -> API 열거형 rawValue 변환
+        // "30대 이하" -> "under30s", "40대" -> "40s" 등
+        // AgeGroup.allCases에서 매칭되는 title 찾아서 rawValue 반환
+        return AgeGroup.allCases.first { $0.title == title }?.rawValue
+    }
 }
-

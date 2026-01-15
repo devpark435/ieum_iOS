@@ -23,6 +23,7 @@ final class SignUpStep2ViewModel: ObservableObject {
         didSelectMale
             .sink { [weak self] in
                 self?.updateSelection(isMale: true)
+                SignUpDataManager.shared.sex = Gender.male.rawValue
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                     self?.navigateToNext.send()
                 }
@@ -32,6 +33,7 @@ final class SignUpStep2ViewModel: ObservableObject {
         didSelectFemale
             .sink { [weak self] in
                 self?.updateSelection(isMale: false)
+                SignUpDataManager.shared.sex = Gender.female.rawValue
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                     self?.navigateToNext.send()
                 }
@@ -44,4 +46,3 @@ final class SignUpStep2ViewModel: ObservableObject {
         isFemaleSelected = !isMale
     }
 }
-

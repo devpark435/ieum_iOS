@@ -34,6 +34,7 @@ final class SignUpStep4ViewModel: ObservableObject {
         
         didTapNext
             .sink { [weak self] in
+                self?.saveSelection()
                 self?.navigateToNext.send()
             }
             .store(in: &cancellables)
@@ -72,6 +73,27 @@ final class SignUpStep4ViewModel: ObservableObject {
         isNextButtonEnabled = count > 0
     }
     
+    private func saveSelection() {
+        // [진단명: 병기] -> [DiagnosisRequest] 변환
+        let diagnoses = selectedDiagnosis.map { (key, value) -> DiagnosisRequest in
+            // "기타", "간이식"의 경우 병기 null
+            let stage: Int? = (value.isEmpty) ? nil : Int(value.replacingOccurrences(of: "기", with: ""))
+            
+            // API 명세에 맞게 key 변환 필요 (직장암 -> rectal_cancer 등)
+            // 현재는 UI 상의 텍스트를 그대로 사용하므로 매핑 로직 필요
+            // 여기서는 임시로 UI 텍스트를 그대로 사용하거나 매퍼를 추가해야 함
+            // TODO: 진단명 매핑 로직 추가
+            
+            var diagnosisKey = "others"
+            if key == "직장암" { diagnosisKey = "rectal_cancer" }
+            else if key == "대장암" { diagnosisKey = "colon_cancer" }
+            else if key == "간이식" { diagnosisKey = "liver_transplant" }
+            
+            return DiagnosisRequest(diagnosis: diagnosisKey, cancerStage: stage)
+        }
+        SignUpDataManager.shared.diagnoses = diagnoses
+    }
+    
     func isDiagnosisSelected(_ title: String) -> Bool {
         return selectedDiagnosis.keys.contains(title)
     }
@@ -80,4 +102,3 @@ final class SignUpStep4ViewModel: ObservableObject {
         return selectedDiagnosis[title]
     }
 }
-

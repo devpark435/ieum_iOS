@@ -104,6 +104,21 @@ class LoginViewController: UIViewController {
                 self?.coordinator?.showSignUp()
             }
             .store(in: &cancellables)
+            
+        viewModel.navigateToMain
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                self?.coordinator?.finish()
+            }
+            .store(in: &cancellables)
+            
+        viewModel.$isLoading
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isLoading in
+                self?.kakaoLoginButton.isEnabled = !isLoading
+                // 필요하다면 로딩 인디케이터 표시
+            }
+            .store(in: &cancellables)
     }
     
     // MARK: - Actions
