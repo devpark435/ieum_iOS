@@ -56,8 +56,11 @@ final class MainTabBarController: UITabBarController {
         calendarTabBarItem.imageInsets = UIEdgeInsets(top: 6, left: 0, bottom: -6, right: 0)
         calendarNav.tabBarItem = calendarTabBarItem
         
-        let myPageVC = MyPageViewController()
-        let myPageNav = UINavigationController(rootViewController: myPageVC)
+        let myPageNav = UINavigationController()
+        let myPageCoordinator = MyPageCoordinator(navigationController: myPageNav)
+        myPageCoordinator.start()
+        coordinators.append(myPageCoordinator)
+        
         let myPageTabBarItem = UITabBarItem(
             title: nil,
             image: UIImage(systemName: "person"),
