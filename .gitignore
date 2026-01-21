@@ -60,3 +60,5 @@ DerivedData/
 *.dSYM
 
 Configs/*.xcconfig
+/Debug.xcconfig
+/Release.xcconfig
