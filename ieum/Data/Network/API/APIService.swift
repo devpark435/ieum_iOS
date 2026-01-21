@@ -8,7 +8,8 @@ final class APIService {
     
     private init() {
         let interceptor = AuthInterceptor()
-        session = Session(interceptor: interceptor)
+        let logger = APIRequestLogger()
+        session = Session(interceptor: interceptor, eventMonitors: [logger])
     }
     
     var baseURL: String {

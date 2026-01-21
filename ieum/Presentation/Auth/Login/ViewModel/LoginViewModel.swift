@@ -46,7 +46,6 @@ final class LoginViewModel: ObservableObject {
                 self?.isLoading = false
                 if case .failure(let error) = completion {
                     self?.error = error
-                    print("Login Error: \(error)")
                 }
             } receiveValue: { [weak self] response in
                 self?.tokenManager.save(accessToken: response.accessToken, refreshToken: response.refreshToken)

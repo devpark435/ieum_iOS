@@ -13,9 +13,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UIGestureRecognizerDele
     var window: UIWindow?
     private var appCoordinator: AppCoordinator?
 
+    // ✅ URL Scheme 처리 추가
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
         if let url = URLContexts.first?.url {
+            print("🔗 URL Scheme 호출됨: \(url)")
+            
             if (AuthApi.isKakaoTalkLoginUrl(url)) {
+                print("✅ 카카오톡 로그인 URL 감지")
                 _ = AuthController.handleOpenUrl(url: url)
             }
         }
