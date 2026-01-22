@@ -5,6 +5,7 @@ import Alamofire
 protocol AuthRepository {
     func loginWithKakao(accessToken: String) -> AnyPublisher<AppLoginResponse, Error>
     func refresh(refreshToken: String) -> AnyPublisher<AppTokenResponse, Error>
+    func getProfile() -> AnyPublisher<UserProfile, Error>
 }
 
 final class AuthRepositoryImpl: AuthRepository {
@@ -46,6 +47,27 @@ final class AuthRepositoryImpl: AuthRepository {
                         endpoint,
                         method: .post,
                         parameters: parameters
+                    )
+                    promise(.success(response))
+                } catch {
+                    promise(.failure(error))
+                }
+            }
+        }
+        .eraseToAnyPublisher()
+    }
+    
+    func getProfile() -> AnyPublisher<UserProfile, Error> {
+        let endpoint = "/api/v1/users/profile"
+        
+        return Future<UserProfile, Error> { [weak self] promise in
+            guard let self = self else { return }
+            
+            Task {
+                do {
+                    let response: UserProfile = try await self.apiService.request(
+                        endpoint,
+                        method: .get
                     )
                     promise(.success(response))
                 } catch {
