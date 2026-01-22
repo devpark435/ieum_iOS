@@ -123,15 +123,28 @@ final class SignUpStep6ViewModel: ObservableObject {
         
         didTapSkip
             .sink { [weak self] in
+                SignUpDataManager.shared.residenceArea = nil
                 self?.navigateToNext.send()
             }
             .store(in: &cancellables)
         
         didTapNext
             .sink { [weak self] in
+                self?.saveSelection()
                 self?.navigateToNext.send()
             }
             .store(in: &cancellables)
     }
+    
+    private func saveSelection() {
+        guard let cityIndex = selectedCityIndex,
+              let districtIndex = selectedDistrictIndex else {
+            SignUpDataManager.shared.residenceArea = nil
+            return
+        }
+        
+        let city = cities[cityIndex]
+        let district = currentDistricts[districtIndex]
+        SignUpDataManager.shared.residenceArea = "\(city) \(district)"
+    }
 }
-

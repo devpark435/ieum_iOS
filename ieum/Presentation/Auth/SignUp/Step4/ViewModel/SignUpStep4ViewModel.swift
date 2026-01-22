@@ -34,6 +34,7 @@ final class SignUpStep4ViewModel: ObservableObject {
         
         didTapNext
             .sink { [weak self] in
+                self?.saveSelection()
                 self?.navigateToNext.send()
             }
             .store(in: &cancellables)
@@ -72,6 +73,22 @@ final class SignUpStep4ViewModel: ObservableObject {
         isNextButtonEnabled = count > 0
     }
     
+    private func saveSelection() {
+        // [진단명: 병기] -> [DiagnosisRequest] 변환
+        let diagnoses = selectedDiagnosis.map { (key, value) -> DiagnosisRequest in
+            // "기타", "간이식"의 경우 병기 null
+            let stage: Int? = (value.isEmpty) ? nil : Int(value.replacingOccurrences(of: "기", with: ""))
+            
+            var diagnosisType: DiagnosisType = .others
+            if key == "직장암" { diagnosisType = .rectalCancer }
+            else if key == "대장암" { diagnosisType = .colonCancer }
+            else if key == "간이식" { diagnosisType = .liverTransplant }
+            
+            return DiagnosisRequest(diagnosis: diagnosisType, cancerStage: stage)
+        }
+        SignUpDataManager.shared.diagnoses = diagnoses
+    }
+    
     func isDiagnosisSelected(_ title: String) -> Bool {
         return selectedDiagnosis.keys.contains(title)
     }
@@ -80,4 +97,3 @@ final class SignUpStep4ViewModel: ObservableObject {
         return selectedDiagnosis[title]
     }
 }
-
