@@ -96,6 +96,7 @@ final class TreatmentRecordViewModel: ObservableObject {
             } receiveValue: { [weak self] response in
                 self?.postSuccess.send()
                 Toast.show(message: "치료 기록 작성을 완료했습니다")
+                NotificationCenter.default.post(name: NSNotification.Name("PostCreated"), object: nil)
             }
             .store(in: &cancellables)
     }

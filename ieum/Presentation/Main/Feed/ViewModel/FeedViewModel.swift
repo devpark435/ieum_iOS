@@ -30,6 +30,7 @@ final class FeedViewModel: ObservableObject {
     init(feedRepository: FeedRepository = FeedRepositoryImpl()) {
         self.feedRepository = feedRepository
         bindInputs()
+        setupNotificationObserver()
     }
     
     private func bindInputs() {
@@ -147,6 +148,15 @@ final class FeedViewModel: ObservableObject {
     }
     
     // MARK: - Helpers
+    
+    private func setupNotificationObserver() {
+        NotificationCenter.default.publisher(for: NSNotification.Name("PostCreated"))
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.refresh()
+            }
+            .store(in: &cancellables)
+    }
     
     private func convertFilterToPostType(_ filter: String) -> PostType {
         switch filter {

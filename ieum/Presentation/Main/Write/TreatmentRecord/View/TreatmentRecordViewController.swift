@@ -292,6 +292,11 @@ final class TreatmentRecordViewController: UIViewController {
             self?.viewModel.removePhoto(at: index)
         }
         
+        // 커뮤니티 공유
+        shareView.onCheckChanged = { [weak self] isChecked in
+            self?.viewModel.updatePublicStatus(isChecked)
+        }
+        
         // 게시하기
         postButton.addTarget(self, action: #selector(didTapPost), for: .touchUpInside)
     }

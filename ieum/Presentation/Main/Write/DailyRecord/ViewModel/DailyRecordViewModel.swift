@@ -107,6 +107,7 @@ final class DailyRecordViewModel: ObservableObject {
             } receiveValue: { [weak self] response in
                 self?.postSuccess.send()
                 Toast.show(message: "일상 기록 작성을 완료했습니다")
+                NotificationCenter.default.post(name: NSNotification.Name("PostCreated"), object: nil)
             }
             .store(in: &cancellables)
     }

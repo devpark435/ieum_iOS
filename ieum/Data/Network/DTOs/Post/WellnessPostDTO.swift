@@ -24,9 +24,9 @@ struct CreateDailyPostData: Codable, Sendable {
 
 struct WellnessPostResponse: Codable, Sendable {
     let id: Int
-    let userId: Int
-    let userNickname: String
     let type: PostType
+    let title: String?
+    let content: String?
     let diagnosis: [String]
     let mood: Int
     let unusualSymptoms: String?
@@ -35,6 +35,9 @@ struct WellnessPostResponse: Codable, Sendable {
     let memo: String?
     let images: [ImageInfo]?
     let shared: Bool
+    let likesCount: Int
+    let commentsCount: Int
+    let isLiked: Bool
     let createdAt: Int
     let updatedAt: Int
 }
@@ -43,13 +46,14 @@ struct WellnessPostResponse: Codable, Sendable {
 
 struct DailyPostResponse: Codable, Sendable {
     let id: Int
-    let userId: Int
-    let userNickname: String
     let type: PostType
     let title: String?
     let content: String
     let images: [ImageInfo]?
     let shared: Bool
+    let likesCount: Int
+    let commentsCount: Int
+    let isLiked: Bool
     let createdAt: Int
     let updatedAt: Int
 }
