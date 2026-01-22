@@ -40,6 +40,14 @@ final class CommentViewController: DimmedViewController {
     
     private let commentInputView = CommentInputView()
     
+    private let emptyStateLabel = UILabel().then {
+        $0.textAlignment = .center
+        $0.setIeumText("아직 댓글이 없습니다", 
+                        style: UIFont.IeumFont.Text.bodySmall, 
+                        color: Colors.Gray.g400)
+        $0.isHidden = true
+    }
+    
     // MARK: - Initializer
     
     init(viewModel: CommentViewModel) {
@@ -84,6 +92,7 @@ final class CommentViewController: DimmedViewController {
         
         containerView.addSubview(dragHandleView)
         containerView.addSubview(tableView)
+        containerView.addSubview(emptyStateLabel)
         containerView.addSubview(commentInputView)
         
         tableView.delegate = self
@@ -118,6 +127,12 @@ final class CommentViewController: DimmedViewController {
             $0.leading.trailing.equalToSuperview()
             $0.bottom.equalTo(commentInputView.snp.top)
         }
+        
+        emptyStateLabel.snp.makeConstraints {
+            $0.top.equalTo(dragHandleView.snp.bottom).offset(8)
+            $0.leading.trailing.equalToSuperview()
+            $0.bottom.equalTo(commentInputView.snp.top)
+        }
     }
     
     private func setupActions() {
@@ -137,10 +152,19 @@ final class CommentViewController: DimmedViewController {
     }
     
     private func bindViewModel() {
-        viewModel.$comments
+        // Comments 업데이트
+        Publishers.CombineLatest(viewModel.$comments, viewModel.$isLoading)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.tableView.reloadData()
+            .sink { [weak self] comments, isLoading in
+                guard let self = self else { return }
+                
+                let isEmpty = comments.isEmpty && !isLoading
+                self.emptyStateLabel.isHidden = !isEmpty
+                self.tableView.isHidden = isEmpty
+                
+                if !isEmpty {
+                    self.tableView.reloadData()
+                }
             }
             .store(in: &cancellables)
         
@@ -150,6 +174,13 @@ final class CommentViewController: DimmedViewController {
                 if comment != nil {
                     self?.commentInputView.focus()
                 }
+            }
+            .store(in: &cancellables)
+        
+        viewModel.commentPostedSuccessfully
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.commentInputView.clearText()
             }
             .store(in: &cancellables)
             
@@ -253,6 +284,28 @@ final class CommentViewController: DimmedViewController {
             self.view.layoutIfNeeded()
         }
     }
+    
+    // MARK: - Helper
+    
+    private func formatRelativeTime(from timestamp: Int) -> String {
+        let now = Int(Date().timeIntervalSince1970)
+        let diff = now - timestamp
+        
+        if diff < 60 {
+            return "방금 전"
+        } else if diff < 3600 {
+            return "\(diff / 60)분 전"
+        } else if diff < 86400 {
+            return "\(diff / 3600)시간 전"
+        } else if diff < 604800 {
+            return "\(diff / 86400)일 전"
+        } else {
+            let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy년 M월 d일"
+            return formatter.string(from: date)
+        }
+    }
 }
 
 // MARK: - UITableViewDelegate & DataSource
@@ -281,7 +334,7 @@ extension CommentViewController: UITableViewDelegate, UITableViewDataSource {
             cell.configure(
                 username: comment.nickname,
                 content: comment.content,
-                date: "1분 전", // Mock
+                date: formatRelativeTime(from: comment.createdAt),
                 isReply: false,
                 isLiked: likeInfo.isLiked,
                 likeCount: likeInfo.count
@@ -307,7 +360,7 @@ extension CommentViewController: UITableViewDelegate, UITableViewDataSource {
             cell.configure(
                 username: reply.nickname,
                 content: reply.content,
-                date: "1분 전",
+                date: formatRelativeTime(from: reply.createdAt),
                 isReply: true,
                 isLiked: replyLikeInfo.isLiked,
                 likeCount: replyLikeInfo.count

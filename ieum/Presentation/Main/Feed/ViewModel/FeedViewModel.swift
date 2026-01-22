@@ -18,7 +18,7 @@ final class FeedViewModel: ObservableObject {
     
     // Navigation Events
     let showWritePost = PassthroughSubject<Void, Never>()
-    let navigateToComments = PassthroughSubject<Int, Never>()
+    let navigateToComments = PassthroughSubject<(Int, PostType), Never>()
     
     private let feedRepository: FeedRepository
     private var cancellables = Set<AnyCancellable>()
@@ -60,7 +60,9 @@ final class FeedViewModel: ObservableObject {
             
         didTapComment
             .sink { [weak self] postId in
-                self?.navigateToComments.send(postId)
+                guard let self = self,
+                      let post = self.posts.first(where: { $0.id == postId }) else { return }
+                self.navigateToComments.send((postId, post.type))
             }
             .store(in: &cancellables)
             

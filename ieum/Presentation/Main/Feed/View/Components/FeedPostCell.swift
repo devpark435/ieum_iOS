@@ -1,6 +1,7 @@
 import UIKit
 import SnapKit
 import Then
+import Kingfisher
 
 /// 피드 포스트 셀
 final class FeedPostCell: UITableViewCell {
@@ -438,10 +439,17 @@ final class FeedPostCell: UITableViewCell {
         dateLabel.text = formatter.string(from: date)
         
         // Image
-        if let images = post.images, let firstImage = images.first {
-            postImageView.image = nil
-            postImageView.backgroundColor = Colors.Gray.g200
+        if let images = post.images, let firstImage = images.first, let imageURL = URL(string: firstImage.url) {
             postImageView.isHidden = false
+            postImageView.backgroundColor = Colors.Gray.g200
+            postImageView.kf.setImage(
+                with: imageURL,
+                placeholder: nil,
+                options: [
+                    .transition(.fade(0.2)),
+                    .cacheOriginalImage
+                ]
+            )
             postImageView.snp.remakeConstraints {
                 $0.top.equalTo(profileImageView.snp.bottom).offset(12)
                 $0.leading.trailing.equalToSuperview()
@@ -449,6 +457,8 @@ final class FeedPostCell: UITableViewCell {
             }
         } else {
             postImageView.isHidden = true
+            postImageView.kf.cancelDownloadTask()
+            postImageView.image = nil
             postImageView.snp.remakeConstraints {
                 $0.top.equalTo(profileImageView.snp.bottom).offset(0)
                 $0.leading.trailing.equalToSuperview()

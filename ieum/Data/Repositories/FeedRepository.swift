@@ -132,7 +132,12 @@ final class FeedRepositoryImpl: FeedRepository {
     // MARK: - 댓글
     
     func fetchComments(postType: PostType, postId: Int, page: Int, pageSize: Int) -> AnyPublisher<CommentResponse, Error> {
-        let endpoint = "/api/v1/posts/\(postType.rawValue)/\(postId)/comments?page=\(page)&pageSize=\(pageSize)"
+        var components = URLComponents(string: "/api/v1/posts/\(postType.rawValue)/\(postId)/comments")
+        components?.queryItems = [
+            URLQueryItem(name: "page", value: String(page)),
+            URLQueryItem(name: "pageSize", value: String(pageSize))
+        ]
+        let endpoint = components?.url?.absoluteString ?? "/api/v1/posts/\(postType.rawValue)/\(postId)/comments"
         
         return Future { [weak self] promise in
             guard let self = self else { return }

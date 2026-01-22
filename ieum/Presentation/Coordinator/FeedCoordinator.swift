@@ -36,8 +36,8 @@ final class FeedCoordinator: Coordinator {
         navigationController.present(viewController, animated: true)
     }
     
-    func showComments(postId: Int) {
-        let viewModel = CommentViewModel(postId: postId)
+    func showComments(postId: Int, postType: PostType) {
+        let viewModel = CommentViewModel(postId: postId, postType: postType)
         let viewController = CommentViewController(viewModel: viewModel)
         // DimmedViewController handles presentation style (.overFullScreen)
         // Custom transition is handled inside CommentViewController

@@ -169,8 +169,8 @@ final class FeedViewController: UIViewController {
             
         viewModel.navigateToComments
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] postId in
-                self?.coordinator?.showComments(postId: postId)
+            .sink { [weak self] tuple in
+                self?.coordinator?.showComments(postId: tuple.0, postType: tuple.1)
             }
             .store(in: &cancellables)
         
