@@ -118,28 +118,30 @@ final class FeedViewModel: ObservableObject {
         guard let index = posts.firstIndex(where: { $0.id == postId }) else { return }
         let post = posts[index]
         
-        // 이미 좋아요가 되어 있으면 API 호출하지 않음 (취소 API가 없는 것으로 보임)
-        guard !post.isLiked else { return }
+        // 현재 좋아요 상태에 따라 적절한 API 호출
+        let publisher: AnyPublisher<LikeResponse, Error>
+        if post.isLiked {
+            publisher = feedRepository.unlikePost(type: post.type, id: post.id)
+        } else {
+            publisher = feedRepository.likePost(type: post.type, id: post.id)
+        }
         
-        feedRepository.likePost(type: post.type, id: post.id)
+        publisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] completion in
-                if case .failure = completion {
-                    // 실패 시 에러 처리
+                if case .failure(let error) = completion {
+                    self?.error = error
                 }
             } receiveValue: { [weak self] response in
-                // 좋아요 성공 시 포스트 업데이트
-                if let self = self, self.posts.indices.contains(index) {
-                    var updatedPost = self.posts[index]
-                    // Post는 struct이므로 직접 수정 불가, 전체 리스트에서 찾아서 교체
-                    if let updateIndex = self.posts.firstIndex(where: { $0.id == postId }) {
-                        // Post 구조체는 immutable이므로 새로 생성해야 함
-                        // 하지만 Post의 모든 필드를 업데이트하기 어려우므로, 전체 리스트를 다시 fetch하는 것이 안전
-                        // 또는 좋아요 상태만 업데이트하는 별도 로직 필요
-                        // 일단 간단하게 리스트를 다시 fetch
-                        self.fetchPosts()
-                    }
-                }
+                guard let self = self,
+                      let updateIndex = self.posts.firstIndex(where: { $0.id == postId }) else { return }
+                
+                // Post.updatingLike를 사용하여 좋아요 상태만 업데이트
+                let updatedPost = self.posts[updateIndex].updatingLike(
+                    isLiked: response.isLiked,
+                    likesCount: response.likesCount
+                )
+                self.posts[updateIndex] = updatedPost
             }
             .store(in: &cancellables)
     }

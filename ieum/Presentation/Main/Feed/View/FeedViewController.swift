@@ -255,8 +255,8 @@ extension FeedViewController: UITableViewDataSource {
             }
         }
         
-        cell.onLikeTapped = {
-            // TODO: 좋아요 API 호출
+        cell.onLikeTapped = { [weak self] in
+            self?.viewModel.didTapLike.send(post.id)
         }
         
         cell.onCommentTapped = { [weak self] in

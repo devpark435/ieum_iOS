@@ -12,6 +12,7 @@ protocol FeedRepository {
     
     // 좋아요
     func likePost(type: PostType, id: Int) -> AnyPublisher<LikeResponse, Error>
+    func unlikePost(type: PostType, id: Int) -> AnyPublisher<LikeResponse, Error>
     
     // 댓글
     func fetchComments(postType: PostType, postId: Int, page: Int, pageSize: Int) -> AnyPublisher<CommentResponse, Error>
@@ -122,6 +123,22 @@ final class FeedRepositoryImpl: FeedRepository {
             Task {
                 do {
                     let response: LikeResponse = try await self.apiService.request(endpoint, method: .post)
+                    promise(.success(response))
+                } catch {
+                    promise(.failure(error))
+                }
+            }
+        }.eraseToAnyPublisher()
+    }
+    
+    func unlikePost(type: PostType, id: Int) -> AnyPublisher<LikeResponse, Error> {
+        let endpoint = "/api/v1/posts/\(type.rawValue)/\(id)/like"
+        
+        return Future { [weak self] promise in
+            guard let self = self else { return }
+            Task {
+                do {
+                    let response: LikeResponse = try await self.apiService.request(endpoint, method: .delete)
                     promise(.success(response))
                 } catch {
                     promise(.failure(error))

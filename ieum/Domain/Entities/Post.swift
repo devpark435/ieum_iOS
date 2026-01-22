@@ -91,3 +91,30 @@ struct ImageInfo: Codable, Sendable {
     let filename: String
     let uploadedAt: Int
 }
+
+// MARK: - Post Extension
+
+extension Post {
+    /// 좋아요 상태만 업데이트한 새로운 Post 인스턴스를 반환합니다.
+    func updatingLike(isLiked: Bool, likesCount: Int) -> Post {
+        return Post(
+            id: self.id,
+            userId: self.userId,
+            userNickname: self.userNickname,
+            type: self.type,
+            title: self.title,
+            content: self.content,
+            diagnosis: self.diagnosis,
+            mood: self.mood,
+            unusualSymptoms: self.unusualSymptoms,
+            medicationTaken: self.medicationTaken,
+            diet: self.diet,
+            memo: self.memo,
+            images: self.images,
+            likesCount: likesCount,
+            isLiked: isLiked,
+            createdAt: self.createdAt,
+            updatedAt: self.updatedAt
+        )
+    }
+}
