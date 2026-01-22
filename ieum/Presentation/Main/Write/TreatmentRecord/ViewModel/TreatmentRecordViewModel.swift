@@ -11,19 +11,22 @@ final class TreatmentRecordViewModel: ObservableObject {
     // Outputs
     @Published var recordModel = TreatmentRecordModel()
     @Published private(set) var isPostButtonEnabled = false
+    @Published private(set) var isLoading = false
+    @Published private(set) var error: Error?
     
+    private let feedRepository: FeedRepository
     private var cancellables = Set<AnyCancellable>()
     
-    init() {
+    init(feedRepository: FeedRepository = FeedRepositoryImpl()) {
+        self.feedRepository = feedRepository
         bindInputs()
     }
     
     private func bindInputs() {
         $recordModel
             .map { model in
-                // 게시하기 버튼 활성화 조건: 예시로 일단 true, 실제 조건에 따라 수정 가능
-                // 예: 기분이 선택되었거나 내용이 하나라도 있거나 등
-                return true
+                // 게시하기 버튼 활성화 조건: 기분이 선택되어야 함 (필수)
+                return model.mood != nil
             }
             .assign(to: &$isPostButtonEnabled)
             
@@ -73,12 +76,27 @@ final class TreatmentRecordViewModel: ObservableObject {
     }
     
     private func postRecord() {
-        // TODO: API 호출 로직 구현
-        print("Post Record: \(recordModel)")
+        guard !isLoading else { return }
+        guard let requestData = recordModel.toCreateRequestData() else { return }
         
-        // Mock Success after delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            self?.postSuccess.send()
-        }
+        isLoading = true
+        
+        // 이미지 변환
+        let imageDatas = recordModel.photos.compactMap { $0.jpegData(compressionQuality: 0.8) }
+        
+        // API 호출
+        feedRepository.createWellnessPost(data: requestData, images: imageDatas)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                self?.isLoading = false
+                if case .failure(let error) = completion {
+                    self?.error = error
+                    print("Upload Error: \(error)")
+                }
+            } receiveValue: { [weak self] response in
+                self?.postSuccess.send()
+                Toast.show(message: "치료 기록 작성을 완료했습니다")
+            }
+            .store(in: &cancellables)
     }
 }

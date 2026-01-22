@@ -2,44 +2,47 @@ import Foundation
 
 // MARK: - Post Model
 
-struct Post: Codable {
+struct Post: Codable, Sendable {
     let id: Int
     let userId: Int
     let userNickname: String
     let type: PostType
-    let title: String
-    let content: String
-    let diagnosis: [Diagnosis]
-    let mood: Int
+    
+    // Daily
+    let title: String?
+    let content: String?
+    
+    // Wellness
+    let diagnosis: [String]?
+    let mood: Int?
     let unusualSymptoms: String?
-    let medicationTaken: Bool
+    let medicationTaken: Bool?
     let diet: Diet?
     let memo: String?
-    let images: [ImageInfo]
+    
+    // Common
+    let images: [ImageInfo]?
     let likesCount: Int
-    let commentsCount: Int
-    let createdAt: Int64
-    let updatedAt: Int64
     let isLiked: Bool
+    let createdAt: Int
+    let updatedAt: Int
 }
 
 // MARK: - PostType
 
-enum PostType: String, Codable {
+enum PostType: String, Codable, Sendable {
     case wellness
-    case treatment
     case daily
-    case question
+    case all // 조회 필터용
 }
 
 // MARK: - Diagnosis
 
-enum Diagnosis: String, Codable {
+enum Diagnosis: String, Codable, Sendable {
     case rectalCancer = "rectal_cancer"
     case colonCancer = "colon_cancer"
-    case breastCancer = "breast_cancer"
     case liverTransplant = "liver_transplant"
-    case other = "other"
+    case others = "others"
     
     var displayName: String {
         switch self {
@@ -47,11 +50,9 @@ enum Diagnosis: String, Codable {
             return "직장암"
         case .colonCancer:
             return "대장암"
-        case .breastCancer:
-            return "유방암"
         case .liverTransplant:
             return "간이식"
-        case .other:
+        case .others:
             return "기타"
         }
     }
@@ -59,38 +60,34 @@ enum Diagnosis: String, Codable {
 
 // MARK: - Diet
 
-struct Diet: Codable {
+struct Diet: Codable, Sendable {
     let amountEaten: AmountEaten
-    let mealContent: String
+    let mealContent: String?
 }
 
 // MARK: - AmountEaten
 
-enum AmountEaten: String, Codable {
+enum AmountEaten: String, Codable, Sendable {
     case wellEaten = "well_eaten"
-    case normal = "normal"
-    case little = "little"
-    case none = "none"
+    case smallAmount = "small_amount"
+    case barelyEaten = "barely_eaten"
     
     var displayName: String {
         switch self {
         case .wellEaten:
             return "잘 먹음"
-        case .normal:
-            return "보통"
-        case .little:
-            return "조금"
-        case .none:
-            return "안 먹음"
+        case .smallAmount:
+            return "소량"
+        case .barelyEaten:
+            return "못 먹음"
         }
     }
 }
 
 // MARK: - ImageInfo
 
-struct ImageInfo: Codable {
+struct ImageInfo: Codable, Sendable {
     let url: String
     let filename: String
-    let uploadedAt: Int64
+    let uploadedAt: Int
 }
-

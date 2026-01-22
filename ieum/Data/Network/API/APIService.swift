@@ -72,4 +72,44 @@ final class APIService {
         // Alamofire에서 nil 파라미터 전달 시 타입은 무시됨
         return try await request(endpoint, method: method, parameters: nil as String?, encoder: JSONParameterEncoder.default)
     }
+    
+    /// Multipart Upload 메서드 (이미지 + JSON 데이터)
+    func upload<T: Decodable>(_ endpoint: String,
+                              multipartFormData: @escaping (MultipartFormData) -> Void) async throws -> T {
+        let fullURL = "\(baseURL)\(endpoint)"
+        
+        Logger.network.debug("🚀 [Upload] POST \(endpoint)")
+        
+        let request = session.upload(multipartFormData: multipartFormData, to: fullURL)
+            .validate()
+        
+        #if DEBUG
+        request.responseData { response in
+            let statusCode = response.response?.statusCode ?? 0
+            
+            if let data = response.data, let jsonString = String(data: data, encoding: .utf8) {
+                var logBody = jsonString
+                if let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []),
+                   let prettyData = try? JSONSerialization.data(withJSONObject: jsonObject, options: .prettyPrinted),
+                   let prettyString = String(data: prettyData, encoding: .utf8) {
+                    logBody = prettyString
+                }
+                
+                Logger.network.debug("""
+                ✅ [Upload Response] \(endpoint) (\(statusCode))
+                \(logBody)
+                """)
+            } else if let error = response.error {
+                Logger.network.error("""
+                ❌ [Upload Error] \(endpoint) (\(statusCode))
+                \(error.localizedDescription)
+                """)
+            }
+        }
+        #endif
+        
+        return try await request
+            .serializingDecodable(T.self)
+            .value
+    }
 }

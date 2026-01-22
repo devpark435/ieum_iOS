@@ -27,8 +27,8 @@ extension Post {
             ))
         }
         
-        // 2. 복약
-        if type == .treatment || type == .wellness {
+        // 2. 복약 (wellness 타입일 때만)
+        if type == .wellness, let medicationTaken = medicationTaken {
             items.append(DisplayItem(
                 iconName: "medication-icon",
                 title: "복약",
@@ -42,7 +42,7 @@ extension Post {
             items.append(DisplayItem(
                 iconName: "meal-icon",
                 title: "식이상태",
-                content: diet.mealContent,
+                content: diet.mealContent ?? "",
                 type: .diet(amount: diet.amountEaten)
             ))
         }

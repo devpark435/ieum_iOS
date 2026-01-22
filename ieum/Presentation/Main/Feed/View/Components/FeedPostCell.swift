@@ -350,9 +350,9 @@ final class FeedPostCell: UITableViewCell {
             // Map amount to asset
             let assetName: String
             switch amount {
-            case .wellEaten, .normal: assetName = "meal-good"
-            case .little: assetName = "meal-small"
-            case .none: assetName = "meal-poor"
+            case .wellEaten: assetName = "meal-good"
+            case .smallAmount: assetName = "meal-small"
+            case .barelyEaten: assetName = "meal-poor"
             }
             
             let sIcon = UIImageView(image: UIImage(named: assetName)).then {
@@ -438,7 +438,7 @@ final class FeedPostCell: UITableViewCell {
         dateLabel.text = formatter.string(from: date)
         
         // Image
-        if let firstImage = post.images.first {
+        if let images = post.images, let firstImage = images.first {
             postImageView.image = nil
             postImageView.backgroundColor = Colors.Gray.g200
             postImageView.isHidden = false
@@ -488,15 +488,19 @@ final class FeedPostCell: UITableViewCell {
             
             // Check if text is long
             // Roughly 80 chars or contains newlines might exceed 3 lines
-            showSeeMore = post.content.count > 80 || post.content.contains("\n")
+            if let content = post.content {
+                showSeeMore = content.count > 80 || content.contains("\n")
+            }
             
-        } else if post.type == .treatment || post.type == .wellness {
+        } else if post.type == .wellness {
             // Wellness Post
             wellnessContainerView.isHidden = false
             
             // 1. Mood (Index 0)
-            let moodView = createMoodRow(mood: post.mood)
-            wellnessContainerView.addArrangedSubview(moodView)
+            if let mood = post.mood {
+                let moodView = createMoodRow(mood: mood)
+                wellnessContainerView.addArrangedSubview(moodView)
+            }
             
             // 2. Items (Index 1...)
             let items = post.displayItems

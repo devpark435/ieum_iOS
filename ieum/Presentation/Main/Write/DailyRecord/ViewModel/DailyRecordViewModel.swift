@@ -14,6 +14,7 @@ final class DailyRecordViewModel: ObservableObject {
     @Published private(set) var isPostEnabled = false
     @Published private(set) var isLoading = false
     @Published private(set) var photos: [UIImage] = []
+    @Published private(set) var error: Error?
     
     // MARK: - State
     private var title = ""
@@ -24,9 +25,11 @@ final class DailyRecordViewModel: ObservableObject {
     let dismiss = PassthroughSubject<Void, Never>()
     let postSuccess = PassthroughSubject<Void, Never>()
     
+    private let feedRepository: FeedRepository
     private var cancellables = Set<AnyCancellable>()
     
-    init() {
+    init(feedRepository: FeedRepository = FeedRepositoryImpl()) {
+        self.feedRepository = feedRepository
         bindInputs()
     }
     
@@ -59,9 +62,9 @@ final class DailyRecordViewModel: ObservableObject {
     }
     
     private func validateInput() {
-        let isValid = !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-                      !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        isPostEnabled = isValid
+        // 제목은 선택 사항, content는 필수
+        let isContentValid = !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        isPostEnabled = isContentValid
     }
     
     func addPhotos(_ newPhotos: [UIImage]) {
@@ -78,16 +81,33 @@ final class DailyRecordViewModel: ObservableObject {
     }
     
     private func postRecord() {
-        guard isPostEnabled else { return }
+        guard isPostEnabled, !isLoading else { return }
         
         isLoading = true
-        // TODO: 실제 API 연동
-        print("Daily Record Posting: \(title), \(content), Public: \(isPublic), Photos: \(photos.count)")
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            self?.isLoading = false
-            self?.postSuccess.send()
-        }
+        // 1. Data 변환
+        let requestData = CreateDailyPostData(
+            title: title.isEmpty ? nil : title,
+            content: content,
+            shared: isPublic
+        )
+        
+        // 2. Image 변환
+        let imageDatas = photos.compactMap { $0.jpegData(compressionQuality: 0.8) }
+        
+        // 3. API 호출
+        feedRepository.createDailyPost(data: requestData, images: imageDatas)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                self?.isLoading = false
+                if case .failure(let error) = completion {
+                    self?.error = error
+                    print("Upload Error: \(error)")
+                }
+            } receiveValue: { [weak self] response in
+                self?.postSuccess.send()
+                Toast.show(message: "일상 기록 작성을 완료했습니다")
+            }
+            .store(in: &cancellables)
     }
 }
-
