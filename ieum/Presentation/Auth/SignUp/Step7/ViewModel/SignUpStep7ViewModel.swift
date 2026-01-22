@@ -61,6 +61,7 @@ final class SignUpStep7ViewModel: ObservableObject {
                 }
             } receiveValue: { [weak self] response in
                 // 회원가입 성공 -> 완료 화면으로 이동
+                print("🎉 [SignUp Success] ID: \(response.id), Nickname: \(response.nickname)")
                 self?.navigateToComplete.send()
             }
             .store(in: &cancellables)

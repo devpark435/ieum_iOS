@@ -79,17 +79,12 @@ final class SignUpStep4ViewModel: ObservableObject {
             // "기타", "간이식"의 경우 병기 null
             let stage: Int? = (value.isEmpty) ? nil : Int(value.replacingOccurrences(of: "기", with: ""))
             
-            // API 명세에 맞게 key 변환 필요 (직장암 -> rectal_cancer 등)
-            // 현재는 UI 상의 텍스트를 그대로 사용하므로 매핑 로직 필요
-            // 여기서는 임시로 UI 텍스트를 그대로 사용하거나 매퍼를 추가해야 함
-            // TODO: 진단명 매핑 로직 추가
+            var diagnosisType: DiagnosisType = .others
+            if key == "직장암" { diagnosisType = .rectalCancer }
+            else if key == "대장암" { diagnosisType = .colonCancer }
+            else if key == "간이식" { diagnosisType = .liverTransplant }
             
-            var diagnosisKey = "others"
-            if key == "직장암" { diagnosisKey = "rectal_cancer" }
-            else if key == "대장암" { diagnosisKey = "colon_cancer" }
-            else if key == "간이식" { diagnosisKey = "liver_transplant" }
-            
-            return DiagnosisRequest(diagnosis: diagnosisKey, cancerStage: stage)
+            return DiagnosisRequest(diagnosis: diagnosisType, cancerStage: stage)
         }
         SignUpDataManager.shared.diagnoses = diagnoses
     }

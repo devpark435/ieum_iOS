@@ -11,7 +11,7 @@ struct UserRegistrationRequest: Codable, Sendable {
 }
 
 struct DiagnosisRequest: Codable, Sendable {
-    let diagnosis: String
+    let diagnosis: DiagnosisType
     let cancerStage: Int? // 암인 경우 필수
 }
 
@@ -21,7 +21,23 @@ struct UserRegistrationResponse: Codable, Sendable {
     let email: String?
     let userType: String
     let nickname: String
-    let registeredAt: Double // Timestamp
+    let registeredAt: Int // Timestamp
+}
+
+enum DiagnosisType: String, Codable, Sendable {
+    case rectalCancer = "rectal_cancer"
+    case colonCancer = "colon_cancer"
+    case liverTransplant = "liver_transplant"
+    case others = "others"
+    
+    var title: String {
+        switch self {
+        case .rectalCancer: return "직장암"
+        case .colonCancer: return "대장암"
+        case .liverTransplant: return "간이식"
+        case .others: return "기타"
+        }
+    }
 }
 
 enum UserType: String, Codable, CaseIterable, Sendable {
