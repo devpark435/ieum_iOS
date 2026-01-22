@@ -183,6 +183,16 @@ final class CommentViewController: DimmedViewController {
                 self?.commentInputView.clearText()
             }
             .store(in: &cancellables)
+        
+        // 좋아요 상태 변경 시 UI 업데이트
+        viewModel.$likes
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                // 좋아요 상태가 변경되면 테이블뷰 리로드
+                self.tableView.reloadData()
+            }
+            .store(in: &cancellables)
             
         commentInputView.onSendTapped = { [weak self] text in
             self?.viewModel.didTapSend.send(text)

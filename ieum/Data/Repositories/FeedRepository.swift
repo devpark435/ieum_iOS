@@ -17,6 +17,7 @@ protocol FeedRepository {
     func fetchComments(postType: PostType, postId: Int, page: Int, pageSize: Int) -> AnyPublisher<CommentResponse, Error>
     func createComment(postType: PostType, postId: Int, content: String, parentId: Int?) -> AnyPublisher<CreateCommentResponse, Error>
     func likeComment(postType: PostType, postId: Int, commentId: Int) -> AnyPublisher<CommentLikeResponse, Error>
+    func unlikeComment(postType: PostType, postId: Int, commentId: Int) -> AnyPublisher<CommentLikeResponse, Error>
 }
 
 final class FeedRepositoryImpl: FeedRepository {
@@ -177,6 +178,22 @@ final class FeedRepositoryImpl: FeedRepository {
             Task {
                 do {
                     let response: CommentLikeResponse = try await self.apiService.request(endpoint, method: .post)
+                    promise(.success(response))
+                } catch {
+                    promise(.failure(error))
+                }
+            }
+        }.eraseToAnyPublisher()
+    }
+    
+    func unlikeComment(postType: PostType, postId: Int, commentId: Int) -> AnyPublisher<CommentLikeResponse, Error> {
+        let endpoint = "/api/v1/posts/\(postType.rawValue)/\(postId)/comments/\(commentId)/like"
+        
+        return Future { [weak self] promise in
+            guard let self = self else { return }
+            Task {
+                do {
+                    let response: CommentLikeResponse = try await self.apiService.request(endpoint, method: .delete)
                     promise(.success(response))
                 } catch {
                     promise(.failure(error))

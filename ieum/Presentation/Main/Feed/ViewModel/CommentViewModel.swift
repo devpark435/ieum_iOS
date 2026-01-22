@@ -124,7 +124,19 @@ final class CommentViewModel: ObservableObject {
     }
     
     private func toggleLike(for id: Int) {
-        feedRepository.likeComment(postType: postType, postId: postId, commentId: id)
+        // 현재 좋아요 상태 확인
+        let currentLikeInfo = likes[id] ?? (isLiked: false, count: 0)
+        let isCurrentlyLiked = currentLikeInfo.isLiked
+        
+        // 좋아요 상태에 따라 적절한 API 호출
+        let publisher: AnyPublisher<CommentLikeResponse, Error>
+        if isCurrentlyLiked {
+            publisher = feedRepository.unlikeComment(postType: postType, postId: postId, commentId: id)
+        } else {
+            publisher = feedRepository.likeComment(postType: postType, postId: postId, commentId: id)
+        }
+        
+        publisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] completion in
                 if case .failure(let error) = completion {
