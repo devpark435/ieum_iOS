@@ -2,6 +2,7 @@ import Foundation
 
 enum SocialLoginType: String, Codable, Sendable {
     case kakao
+    case apple
 }
 
 struct AppLoginRequest: Codable, Sendable {

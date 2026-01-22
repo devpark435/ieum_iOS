@@ -2,6 +2,7 @@ import UIKit
 import SnapKit
 import Then
 import Combine
+import AuthenticationServices
 
 class LoginViewController: UIViewController {
     
@@ -33,7 +34,34 @@ class LoginViewController: UIViewController {
     
     private let kakaoLoginButton = IeumButton(title: "카카오톡으로 계속하기").then {
         $0.setStyle(backgroundColor: Colors.Slate.s900, titleColor: Colors.white, for: .normal)
-        $0.titleLabel?.font = .ieum(UIFont.IeumFont.Btn.large) // 폰트 변경
+        $0.titleLabel?.font = .ieum(UIFont.IeumFont.Btn.large)
+    }
+    
+    // Apple 로그인 버튼 (커스텀 버튼으로 변경하여 카카오 버튼과 스타일 통일)
+    private let appleLoginButton = UIButton().then {
+        var config = UIButton.Configuration.filled()
+        config.baseBackgroundColor = .black
+        config.baseForegroundColor = .white
+        config.image = UIImage(systemName: "apple.logo")
+        config.imagePadding = 10 // 이미지와 텍스트 사이 간격
+        config.imagePlacement = .leading
+        
+        // 폰트 설정
+        var container = AttributeContainer()
+        container.font = .ieum(UIFont.IeumFont.Btn.large)
+        config.attributedTitle = AttributedString("Apple로 계속하기", attributes: container)
+        
+        config.background.cornerRadius = 16
+        config.cornerStyle = .fixed
+        
+        $0.configuration = config
+    }
+    
+    // 버튼들을 담을 스택뷰
+    private let buttonStackView = UIStackView().then {
+        $0.axis = .vertical
+        $0.spacing = 16
+        $0.distribution = .fillEqually
     }
     
     // MARK: - Life Cycle
@@ -61,7 +89,10 @@ class LoginViewController: UIViewController {
         
         view.addSubview(logoImageView)
         view.addSubview(titleLabel)
-        view.addSubview(kakaoLoginButton)
+        
+        buttonStackView.addArrangedSubview(appleLoginButton)
+        buttonStackView.addArrangedSubview(kakaoLoginButton)
+        view.addSubview(buttonStackView)
     }
     
     private func setupLayout() {
@@ -84,15 +115,22 @@ class LoginViewController: UIViewController {
             $0.width.height.equalTo(400)
         }
         
-        kakaoLoginButton.snp.makeConstraints {
+        buttonStackView.snp.makeConstraints {
             $0.leading.trailing.equalToSuperview().inset(24)
             $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(24)
-            $0.height.equalTo(72)
+        }
+        
+        // 버튼 높이 설정 (IeumButton 높이 통일)
+        [appleLoginButton, kakaoLoginButton].forEach { button in
+            button.snp.makeConstraints {
+                $0.height.equalTo(56)
+            }
         }
     }
     
     private func setupActions() {
         kakaoLoginButton.addTarget(self, action: #selector(didTapKakaoLogin), for: .touchUpInside)
+        appleLoginButton.addTarget(self, action: #selector(didTapAppleLogin), for: .touchUpInside)
     }
     
     // MARK: - Binding
@@ -116,6 +154,7 @@ class LoginViewController: UIViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isLoading in
                 self?.kakaoLoginButton.isEnabled = !isLoading
+                self?.appleLoginButton.isEnabled = !isLoading
                 // 필요하다면 로딩 인디케이터 표시
             }
             .store(in: &cancellables)
@@ -125,5 +164,9 @@ class LoginViewController: UIViewController {
     
     @objc private func didTapKakaoLogin() {
         viewModel.didTapKakaoLogin.send()
+    }
+    
+    @objc private func didTapAppleLogin() {
+        viewModel.didTapAppleLogin.send()
     }
 }
