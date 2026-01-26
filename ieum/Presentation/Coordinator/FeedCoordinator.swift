@@ -43,4 +43,11 @@ final class FeedCoordinator: Coordinator {
         // Custom transition is handled inside CommentViewController
         navigationController.present(viewController, animated: false)
     }
+    
+    func showEditTreatmentRecord(post: Post) {
+        guard post.type == .wellness else { return }
+        let viewController = TreatmentRecordViewController(post: post)
+        viewController.modalPresentationStyle = .fullScreen
+        navigationController.present(viewController, animated: true)
+    }
 }

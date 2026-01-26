@@ -22,6 +22,7 @@ struct Post: Codable, Sendable {
     
     // Common
     let images: [ImageInfo]?
+    let shared: Bool?
     let likesCount: Int
     let isLiked: Bool
     let createdAt: Int
@@ -111,6 +112,7 @@ extension Post {
             diet: self.diet,
             memo: self.memo,
             images: self.images,
+            shared: self.shared,
             likesCount: likesCount,
             isLiked: isLiked,
             createdAt: self.createdAt,

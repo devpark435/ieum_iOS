@@ -8,6 +8,10 @@ final class FeedViewModel: ObservableObject {
     let didTapWritePost = PassthroughSubject<Void, Never>()
     let didTapLike = PassthroughSubject<Int, Never>()
     let didTapComment = PassthroughSubject<Int, Never>()
+    let didTapMenu = PassthroughSubject<Post, Never>()
+    let didTapEdit = PassthroughSubject<Post, Never>()
+    let didTapDelete = PassthroughSubject<Post, Never>()
+    let didTapReport = PassthroughSubject<Post, Never>()
     let loadMore = PassthroughSubject<Void, Never>()
     
     // Outputs
@@ -15,22 +19,28 @@ final class FeedViewModel: ObservableObject {
     @Published private(set) var selectedFilter: String = "전체"
     @Published private(set) var posts: [Post] = []
     @Published private(set) var error: Error?
+    @Published private(set) var currentUserId: Int?
     
     // Navigation Events
     let showWritePost = PassthroughSubject<Void, Never>()
     let navigateToComments = PassthroughSubject<(Int, PostType), Never>()
+    let navigateToEdit = PassthroughSubject<Post, Never>()
     
     private let feedRepository: FeedRepository
+    private let authRepository: AuthRepository
     private var cancellables = Set<AnyCancellable>()
     
     private var currentPage = 1
     private let pageSize = 10
     private var isLastPage = false
     
-    init(feedRepository: FeedRepository = FeedRepositoryImpl()) {
+    init(feedRepository: FeedRepository = FeedRepositoryImpl(),
+         authRepository: AuthRepository = AuthRepositoryImpl()) {
         self.feedRepository = feedRepository
+        self.authRepository = authRepository
         bindInputs()
         setupNotificationObserver()
+        fetchCurrentUserId()
     }
     
     private func bindInputs() {
@@ -64,6 +74,25 @@ final class FeedViewModel: ObservableObject {
                 guard let self = self,
                       let post = self.posts.first(where: { $0.id == postId }) else { return }
                 self.navigateToComments.send((postId, post.type))
+            }
+            .store(in: &cancellables)
+        
+        didTapEdit
+            .sink { [weak self] post in
+                self?.navigateToEdit.send(post)
+            }
+            .store(in: &cancellables)
+        
+        didTapDelete
+            .sink { [weak self] post in
+                self?.deletePost(post)
+            }
+            .store(in: &cancellables)
+        
+        didTapReport
+            .sink { [weak self] post in
+                // TODO: 신고하기 API 연동
+                print("신고하기: \(post.id)")
             }
             .store(in: &cancellables)
             
@@ -100,6 +129,10 @@ final class FeedViewModel: ObservableObject {
                 self?.isLoading = false
                 if case .failure(let error) = completion {
                     self?.error = error
+                    print("❌ Feed Fetch Error: \(error)")
+                    if let decodingError = error as? DecodingError {
+                        print("Decoding Error Details: \(decodingError)")
+                    }
                 }
             } receiveValue: { [weak self] response in
                 guard let self = self else { return }
@@ -165,5 +198,46 @@ final class FeedViewModel: ObservableObject {
         case "치료 기록": return .wellness
         default: return .all
         }
+    }
+    
+    // MARK: - Current User
+    
+    private func fetchCurrentUserId() {
+        authRepository.getProfile()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                if case .failure(let error) = completion {
+                    print("Failed to fetch current user ID: \(error)")
+                }
+            } receiveValue: { [weak self] profile in
+                self?.currentUserId = profile.id
+            }
+            .store(in: &cancellables)
+    }
+    
+    func isMyPost(_ post: Post) -> Bool {
+        guard let currentUserId = currentUserId else { return false }
+        return post.userId == currentUserId
+    }
+    
+    // MARK: - Delete
+    
+    private func deletePost(_ post: Post) {
+        guard post.type == .wellness else { return }
+        
+        feedRepository.deleteWellnessPost(id: post.id)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                if case .failure(let error) = completion {
+                    self?.error = error
+                    print("Delete Error: \(error)")
+                }
+            } receiveValue: { [weak self] _ in
+                guard let self = self else { return }
+                // 피드에서 해당 게시글 제거
+                self.posts.removeAll { $0.id == post.id }
+                Toast.show(message: "게시글이 삭제되었습니다")
+            }
+            .store(in: &cancellables)
     }
 }

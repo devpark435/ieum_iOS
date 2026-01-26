@@ -8,9 +8,20 @@ final class TreatmentRecordViewController: UIViewController {
     
     // MARK: - Properties
     
-    private let viewModel = TreatmentRecordViewModel()
+    private let viewModel: TreatmentRecordViewModel
     private var cancellables = Set<AnyCancellable>()
     weak var coordinator: AppCoordinator?
+    
+    // MARK: - Initializer
+    
+    init(post: Post? = nil) {
+        self.viewModel = TreatmentRecordViewModel(post: post)
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     // MARK: - UI Components
     

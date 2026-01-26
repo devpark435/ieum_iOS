@@ -19,6 +19,10 @@ protocol FeedRepository {
     func createComment(postType: PostType, postId: Int, content: String, parentId: Int?) -> AnyPublisher<CreateCommentResponse, Error>
     func likeComment(postType: PostType, postId: Int, commentId: Int) -> AnyPublisher<CommentLikeResponse, Error>
     func unlikeComment(postType: PostType, postId: Int, commentId: Int) -> AnyPublisher<CommentLikeResponse, Error>
+    
+    // 수정/삭제
+    func updateWellnessPost(id: Int, data: UpdateWellnessPostData, images: [Data]?) -> AnyPublisher<WellnessPostResponse, Error>
+    func deleteWellnessPost(id: Int) -> AnyPublisher<Void, Error>
 }
 
 final class FeedRepositoryImpl: FeedRepository {
@@ -222,6 +226,55 @@ final class FeedRepositoryImpl: FeedRepository {
                 do {
                     let response: CommentLikeResponse = try await self.apiService.request(endpoint, method: .delete)
                     promise(.success(response))
+                } catch {
+                    promise(.failure(error))
+                }
+            }
+        }.eraseToAnyPublisher()
+    }
+    
+    // MARK: - 수정/삭제
+    
+    func updateWellnessPost(id: Int, data: UpdateWellnessPostData, images: [Data]?) -> AnyPublisher<WellnessPostResponse, Error> {
+        return Future { [weak self] promise in
+            guard let self = self else { return }
+            Task {
+                do {
+                    let response: WellnessPostResponse = try await self.apiService.upload("/api/v1/posts/wellness/\(id)", method: .patch) { multipartFormData in
+                        // 1. JSON Data Part - JSON 문자열로 변환 (data가 비어있지 않은 경우만)
+                        if let jsonData = try? JSONEncoder().encode(data),
+                           let jsonString = String(data: jsonData, encoding: .utf8) {
+                            multipartFormData.append(
+                                jsonString.data(using: .utf8)!,
+                                withName: "data"
+                            )
+                        }
+                        
+                        // 2. Images Part (있는 경우만)
+                        images?.enumerated().forEach { index, imageData in
+                            multipartFormData.append(imageData,
+                                                     withName: "images",
+                                                     fileName: "image_\(index).jpg",
+                                                     mimeType: "image/jpeg")
+                        }
+                    }
+                    promise(.success(response))
+                } catch {
+                    promise(.failure(error))
+                }
+            }
+        }.eraseToAnyPublisher()
+    }
+    
+    func deleteWellnessPost(id: Int) -> AnyPublisher<Void, Error> {
+        let endpoint = "/api/v1/posts/wellness/\(id)"
+        
+        return Future { [weak self] promise in
+            guard let self = self else { return }
+            Task {
+                do {
+                    try await self.apiService.requestNoContent(endpoint, method: .delete)
+                    promise(.success(()))
                 } catch {
                     promise(.failure(error))
                 }

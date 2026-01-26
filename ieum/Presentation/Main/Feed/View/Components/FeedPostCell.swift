@@ -14,8 +14,13 @@ final class FeedPostCell: UITableViewCell {
     var onCommentTapped: (() -> Void)?
     var onBookmarkTapped: (() -> Void)?
     var onShareTapped: (() -> Void)?
-    var onMenuTapped: (() -> Void)?
+    var onEditTapped: ((Post) -> Void)?
+    var onDeleteTapped: ((Post) -> Void)?
+    var onReportTapped: ((Post) -> Void)?
     var onSeeMoreTapped: (() -> Void)?
+    
+    private var currentPost: Post?
+    private var isMyPost: Bool = false
     
     private var isLiked = false
     private var isBookmarked = false
@@ -434,7 +439,6 @@ final class FeedPostCell: UITableViewCell {
         
         container.addSubview(headerStack)
         
-        // Medication might not have content text displayed if it's empty
         let hasContent = !item.content.isEmpty
         if hasContent {
             container.addSubview(contentLabel)
@@ -460,7 +464,11 @@ final class FeedPostCell: UITableViewCell {
     
     // MARK: - Configuration
     
-    func configure(with post: Post) {
+    func configure(with post: Post, isMyPost: Bool = false) {
+        currentPost = post
+        self.isMyPost = isMyPost
+        setupMenu()
+        
         usernameLabel.text = post.userNickname
         isLiked = post.isLiked
         
@@ -665,7 +673,33 @@ final class FeedPostCell: UITableViewCell {
     }
     
     @objc private func didTapMenu() {
-        onMenuTapped?()
+    }
+    
+    private func setupMenu() {
+        guard let post = currentPost else { return }
+        
+        if isMyPost {
+            let editAction = UIAction(title: "수정", image: UIImage(systemName: "pencil")) { [weak self] _ in
+                guard let self = self, let post = self.currentPost else { return }
+                self.onEditTapped?(post)
+            }
+            
+            let deleteAction = UIAction(title: "삭제", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+                guard let self = self, let post = self.currentPost else { return }
+                self.onDeleteTapped?(post)
+            }
+            
+            menuButton.menu = UIMenu(title: "", children: [editAction, deleteAction])
+            menuButton.showsMenuAsPrimaryAction = true
+        } else {
+            let reportAction = UIAction(title: "신고하기", image: UIImage(systemName: "exclamationmark.triangle"), attributes: .destructive) { [weak self] _ in
+                guard let self = self, let post = self.currentPost else { return }
+                self.onReportTapped?(post)
+            }
+            
+            menuButton.menu = UIMenu(title: "", children: [reportAction])
+            menuButton.showsMenuAsPrimaryAction = true
+        }
     }
     
     @objc private func didTapSeeMore() {

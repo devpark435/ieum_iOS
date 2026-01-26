@@ -68,19 +68,46 @@ final class APIService {
     /// 파라미터 없이 호출할 때 컴파일러가 P 타입을 추론할 수 없으므로 오버로딩 필요
     func request<T: Decodable>(_ endpoint: String,
                                method: HTTPMethod) async throws -> T {
-        // P 타입을 Dummy(Void와 유사)로 지정하여 위 메서드 호출
-        // Alamofire에서 nil 파라미터 전달 시 타입은 무시됨
         return try await request(endpoint, method: method, parameters: nil as String?, encoder: JSONParameterEncoder.default)
     }
     
-    /// Multipart Upload 메서드 (이미지 + JSON 데이터)
+    /// 204 No Content 응답 처리용 메서드
+    func requestNoContent(_ endpoint: String, method: HTTPMethod) async throws {
+        let fullURL = "\(baseURL)\(endpoint)"
+        
+        Logger.network.debug("🚀 [Request] \(method.rawValue) \(endpoint)")
+        
+        let request = session.request(fullURL, method: method)
+            .validate(statusCode: [200, 204])
+        
+        #if DEBUG
+        request.responseData { response in
+            let statusCode = response.response?.statusCode ?? 0
+            Logger.network.debug("✅ [Response] \(endpoint) (\(statusCode)) - No Content")
+        }
+        #endif
+        
+        try await request.serializingData().value
+    }
+    
+    /// Multipart Upload 메서드 (이미지 + JSON 데이터) - POST 기본
     func upload<T: Decodable>(_ endpoint: String,
+                              multipartFormData: @escaping (MultipartFormData) -> Void) async throws -> T {
+        return try await upload(endpoint, method: .post, multipartFormData: multipartFormData)
+    }
+    
+    /// Multipart Upload 메서드 (이미지 + JSON 데이터) - 메서드 지정 가능
+    func upload<T: Decodable>(_ endpoint: String,
+                              method: HTTPMethod,
                               multipartFormData: @escaping (MultipartFormData) -> Void) async throws -> T {
         let fullURL = "\(baseURL)\(endpoint)"
         
-        Logger.network.debug("🚀 [Upload] POST \(endpoint)")
+        Logger.network.debug("🚀 [Upload] \(method.rawValue) \(endpoint)")
         
-        let request = session.upload(multipartFormData: multipartFormData, to: fullURL)
+        var urlRequest = try URLRequest(url: fullURL, method: method)
+        // Content-Type은 Alamofire가 boundary와 함께 자동으로 설정함
+        
+        let request = session.upload(multipartFormData: multipartFormData, with: urlRequest)
             .validate()
         
         #if DEBUG
