@@ -254,7 +254,11 @@ final class RecordItemView: UIView {
             subtitleContainerView.isHidden = true
             plusButton.isHidden = true
         } else {
-            reset()
+            // 내용만 숨기고 상태는 유지
+            dividerView.isHidden = true
+            contentLabel.isHidden = true
+            contentLabel.text = nil
+            // statusChipView와 plusButton은 그대로 유지 (updateStatus에서 이미 설정됨)
         }
     }
     

@@ -65,9 +65,14 @@ final class FeedRepositoryImpl: FeedRepository {
             Task {
                 do {
                     let response: WellnessPostResponse = try await self.apiService.upload("/api/v1/posts/wellness") { multipartFormData in
-                        // 1. JSON Data Part
-                        if let jsonData = try? JSONEncoder().encode(data) {
-                            multipartFormData.append(jsonData, withName: "data")
+                        // 1. JSON Data Part - JSON 문자열로 변환
+                        if let jsonData = try? JSONEncoder().encode(data),
+                           let jsonString = String(data: jsonData, encoding: .utf8) {
+                            // JSON 문자열을 Data로 변환하여 append (mimeType 없이)
+                            multipartFormData.append(
+                                jsonString.data(using: .utf8)!,
+                                withName: "data"
+                            )
                         }
                         
                         // 2. Images Part
@@ -92,9 +97,14 @@ final class FeedRepositoryImpl: FeedRepository {
             Task {
                 do {
                     let response: DailyPostResponse = try await self.apiService.upload("/api/v1/posts/daily") { multipartFormData in
-                        // 1. JSON Data Part
-                        if let jsonData = try? JSONEncoder().encode(data) {
-                            multipartFormData.append(jsonData, withName: "data")
+                        // 1. JSON Data Part - JSON 문자열로 변환
+                        if let jsonData = try? JSONEncoder().encode(data),
+                           let jsonString = String(data: jsonData, encoding: .utf8) {
+                            // JSON 문자열을 Data로 변환하여 append (mimeType 없이)
+                            multipartFormData.append(
+                                jsonString.data(using: .utf8)!,
+                                withName: "data"
+                            )
                         }
                         
                         // 2. Images Part
@@ -102,7 +112,7 @@ final class FeedRepositoryImpl: FeedRepository {
                             multipartFormData.append(imageData,
                                                      withName: "images",
                                                      fileName: "image_\(index).jpg",
-                                                     mimeType: "image/jpeg")
+                                                     mimeType: "image/*")
                         }
                     }
                     promise(.success(response))

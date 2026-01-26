@@ -25,8 +25,8 @@ final class TreatmentRecordViewModel: ObservableObject {
     private func bindInputs() {
         $recordModel
             .map { model in
-                // 게시하기 버튼 활성화 조건: 기분이 선택되어야 함 (필수)
-                return model.mood != nil
+                // 게시하기 버튼 활성화 조건: 기분(mood)과 복약(medication) 필수
+                return model.mood != nil && model.medication != nil
             }
             .assign(to: &$isPostButtonEnabled)
             
@@ -52,8 +52,10 @@ final class TreatmentRecordViewModel: ObservableObject {
     }
     
     func updateMeal(status: MealStatus, description: String?) {
-        recordModel.meal = status
-        recordModel.mealDescription = description
+        var newModel = recordModel
+        newModel.meal = status
+        newModel.mealDescription = description
+        recordModel = newModel
     }
     
     func updateMemo(_ text: String?) {

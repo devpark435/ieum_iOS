@@ -90,7 +90,7 @@ final class TreatmentRecordViewController: UIViewController {
     private let photoItem = RecordItemView(
         iconName: "photo-icon",
         title: "사진추가",
-        subtitle: "최대 3장까지 가능합니다."
+        subtitle: "최대 5장까지 가능합니다."
     )
     
     // 커뮤니티 공유 영역
@@ -266,7 +266,10 @@ final class TreatmentRecordViewController: UIViewController {
         // 식이상태
         mealItem.onTap = { [weak self] in
             guard let self = self else { return }
-            let vc = MealInputViewController()
+            let vc = MealInputViewController(
+                initialStatus: self.viewModel.recordModel.meal,
+                initialDescription: self.viewModel.recordModel.mealDescription
+            )
             vc.onComplete = { status, text in
                 self.viewModel.updateMeal(status: status, description: text)
             }
@@ -390,7 +393,7 @@ final class TreatmentRecordViewController: UIViewController {
     
     private func presentPhotoPicker() {
         var config = PHPickerConfiguration()
-        config.selectionLimit = 3
+        config.selectionLimit = 5
         config.filter = .images
         
         let picker = PHPickerViewController(configuration: config)

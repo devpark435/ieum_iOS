@@ -68,7 +68,7 @@ final class DailyRecordViewModel: ObservableObject {
     }
     
     func addPhotos(_ newPhotos: [UIImage]) {
-        let availableSlots = 3 - photos.count
+        let availableSlots = 5 - photos.count
         guard availableSlots > 0 else { return }
         
         let prefix = newPhotos.prefix(availableSlots)

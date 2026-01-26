@@ -67,8 +67,14 @@ final class MealInputViewController: DimmedViewController {
     
     // MARK: - Initializer
     
-    override init() {
+    init(initialStatus: MealStatus? = nil, initialDescription: String? = nil) {
         super.init()
+        if let status = initialStatus {
+            self.selectedStatus = status
+        }
+        if let description = initialDescription {
+            self.textView.text = description
+        }
     }
     
     required init?(coder: NSCoder) {
@@ -84,6 +90,7 @@ final class MealInputViewController: DimmedViewController {
         setupLayout()
         setupActions()
         updateChipSelection()
+        placeholderLabel.isHidden = !textView.text.isEmpty
         
         setupKeyboardObservers()
         
@@ -92,7 +99,7 @@ final class MealInputViewController: DimmedViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        textView.becomeFirstResponder()
+        // 메뉴 입력이 선택사항이므로 자동 포커스 제거
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -246,7 +253,8 @@ final class MealInputViewController: DimmedViewController {
     // MARK: - Actions
     
     @objc private func didTapDone() {
-        onComplete?(selectedStatus, textView.text)
+        let mealDescription = textView.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        onComplete?(selectedStatus, mealDescription.isEmpty ? nil : mealDescription)
         textView.resignFirstResponder()
         dismiss(animated: true)
     }

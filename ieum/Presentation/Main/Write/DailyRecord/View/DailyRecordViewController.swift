@@ -47,7 +47,7 @@ final class DailyRecordViewController: UIViewController {
     private let photoRecordView = RecordItemView(
         iconName: "photo-icon",
         title: "사진추가",
-        subtitle: "최대 3장까지 가능합니다."
+        subtitle: "최대 5장까지 가능합니다."
     )
     
     private let shareView = RecordShareView().then {
@@ -221,7 +221,7 @@ final class DailyRecordViewController: UIViewController {
     
     private func showPhotoPicker() {
         var config = PHPickerConfiguration()
-        config.selectionLimit = 3 - viewModel.photos.count // Dynamic limit
+        config.selectionLimit = 5 - viewModel.photos.count // Dynamic limit
         config.filter = .images
         
         let picker = PHPickerViewController(configuration: config)
