@@ -50,4 +50,11 @@ final class FeedCoordinator: Coordinator {
         viewController.modalPresentationStyle = .fullScreen
         navigationController.present(viewController, animated: true)
     }
+    
+    func showEditDailyRecord(post: Post) {
+        guard post.type == .daily else { return }
+        let viewController = DailyRecordViewController(post: post)
+        viewController.modalPresentationStyle = .fullScreen
+        navigationController.present(viewController, animated: true)
+    }
 }

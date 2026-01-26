@@ -177,14 +177,15 @@ final class FeedViewController: UIViewController {
         viewModel.navigateToEdit
             .receive(on: DispatchQueue.main)
             .sink { [weak self] post in
-                self?.coordinator?.showEditTreatmentRecord(post: post)
-            }
-            .store(in: &cancellables)
-        
-        viewModel.navigateToEdit
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] post in
-                self?.coordinator?.showEditTreatmentRecord(post: post)
+                guard let self = self else { return }
+                switch post.type {
+                case .wellness:
+                    self.coordinator?.showEditTreatmentRecord(post: post)
+                case .daily:
+                    self.coordinator?.showEditDailyRecord(post: post)
+                case .all:
+                    break
+                }
             }
             .store(in: &cancellables)
         

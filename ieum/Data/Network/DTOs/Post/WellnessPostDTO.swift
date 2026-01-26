@@ -32,6 +32,14 @@ struct CreateDailyPostData: Codable, Sendable {
     let shared: Bool
 }
 
+// MARK: - Update Daily Post Request
+
+struct UpdateDailyPostData: Codable, Sendable {
+    let title: String?
+    let content: String?
+    let shared: Bool?
+}
+
 // MARK: - Wellness Post Response
 
 struct WellnessPostResponse: Codable, Sendable {

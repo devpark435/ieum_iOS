@@ -223,9 +223,18 @@ final class FeedViewModel: ObservableObject {
     // MARK: - Delete
     
     private func deletePost(_ post: Post) {
-        guard post.type == .wellness else { return }
+        let publisher: AnyPublisher<Void, Error>
         
-        feedRepository.deleteWellnessPost(id: post.id)
+        switch post.type {
+        case .wellness:
+            publisher = feedRepository.deleteWellnessPost(id: post.id)
+        case .daily:
+            publisher = feedRepository.deleteDailyPost(id: post.id)
+        case .all:
+            return
+        }
+        
+        publisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] completion in
                 if case .failure(let error) = completion {
