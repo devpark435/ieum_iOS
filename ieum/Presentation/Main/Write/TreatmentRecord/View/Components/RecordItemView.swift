@@ -9,6 +9,9 @@ final class RecordItemView: UIView {
     var onTap: (() -> Void)?
     var onDeletePhoto: ((Int) -> Void)?
     
+    private var photos: [UIImage] = []
+    private let maxPhotos = 5
+    
     // MARK: - UI Components
     
     private let containerView = UIView().then {
@@ -100,12 +103,24 @@ final class RecordItemView: UIView {
     }
     
     // MARK: Content Area (Photos)
-    private let photoStackView = UIStackView().then {
-        $0.axis = .horizontal
-        $0.spacing = 8
-        $0.isHidden = true
-        $0.alignment = .leading
-    }
+    private lazy var photoCollectionView: UICollectionView = {
+        let layout = UICollectionViewFlowLayout()
+        layout.scrollDirection = .horizontal
+        layout.itemSize = CGSize(width: 88, height: 88)
+        layout.minimumInteritemSpacing = 8
+        layout.minimumLineSpacing = 8
+        
+        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        collectionView.showsHorizontalScrollIndicator = true
+        collectionView.showsVerticalScrollIndicator = false
+        collectionView.backgroundColor = .clear
+        collectionView.isHidden = true
+        collectionView.dataSource = self
+        collectionView.delegate = self
+        collectionView.register(PhotoCollectionViewCell.self, forCellWithReuseIdentifier: PhotoCollectionViewCell.identifier)
+        collectionView.register(AddPhotoCollectionViewCell.self, forCellWithReuseIdentifier: AddPhotoCollectionViewCell.identifier)
+        return collectionView
+    }()
     
     // MARK: - Initializer
     
@@ -164,7 +179,7 @@ final class RecordItemView: UIView {
         mainStackView.addArrangedSubview(contentLabel)
         
         // Content (Photos)
-        mainStackView.addArrangedSubview(photoStackView)
+        mainStackView.addArrangedSubview(photoCollectionView)
     }
     
     private func setupStatusBadge() {
@@ -223,8 +238,8 @@ final class RecordItemView: UIView {
             $0.height.equalTo(1)
         }
         
-        // Photo Stack View Height
-        photoStackView.snp.makeConstraints {
+        // Photo Collection View
+        photoCollectionView.snp.makeConstraints {
             $0.height.equalTo(88)
         }
     }
@@ -237,8 +252,9 @@ final class RecordItemView: UIView {
         dividerView.isHidden = true
         contentLabel.isHidden = true
         contentLabel.text = nil
-        photoStackView.isHidden = true
-        photoStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        photoCollectionView.isHidden = true
+        photos = []
+        photoCollectionView.reloadData()
         
         // 서브타이틀 표시
         subtitleContainerView.isHidden = false
@@ -279,59 +295,67 @@ final class RecordItemView: UIView {
     }
     
     func updatePhotos(images: [UIImage]) {
-        photoStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        photos = images
         
         if images.isEmpty {
-            photoStackView.isHidden = true
+            photoCollectionView.isHidden = true
+            plusButton.isHidden = false
+            photoCollectionView.reloadData()
             return
         }
         
         plusButton.isHidden = true
         subtitleContainerView.isHidden = true
         dividerView.isHidden = false
-        
-        photoStackView.isHidden = false
-        images.enumerated().forEach { index, image in
-            // 썸네일 컨테이너
-            let container = UIView()
-            container.snp.makeConstraints {
-                $0.width.height.equalTo(88)
-            }
-            
-            let imageView = UIImageView(image: image)
-            imageView.contentMode = .scaleAspectFill
-            imageView.clipsToBounds = true
-            imageView.layer.cornerRadius = 8
-            
-            container.addSubview(imageView)
-            imageView.snp.makeConstraints {
-                $0.edges.equalToSuperview()
-            }
-            
-            // 삭제 버튼 (X)
-            let deleteBtn = UIButton()
-            deleteBtn.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
-            deleteBtn.tintColor = Colors.Gray.g600
-            deleteBtn.backgroundColor = Colors.white
-            deleteBtn.layer.cornerRadius = 10
-            deleteBtn.tag = index // 인덱스 저장
-            deleteBtn.addTarget(self, action: #selector(didTapDeletePhoto(_:)), for: .touchUpInside)
-            
-            container.addSubview(deleteBtn)
-            deleteBtn.snp.makeConstraints {
-                $0.top.trailing.equalToSuperview().inset(4)
-                $0.width.height.equalTo(20)
-            }
-            
-            photoStackView.addArrangedSubview(container)
-        }
-        
-        // Spacer
-        let spacer = UIView()
-        photoStackView.addArrangedSubview(spacer)
+        photoCollectionView.isHidden = false
+        photoCollectionView.reloadData()
+    }
+}
+
+// MARK: - UICollectionViewDataSource
+
+extension RecordItemView: UICollectionViewDataSource {
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        let photoCount = photos.count
+        // 사진 개수 + (5장 미만일 때 + 버튼 1개)
+        return photoCount + (photoCount < maxPhotos ? 1 : 0)
     }
     
-    @objc private func didTapDeletePhoto(_ sender: UIButton) {
-        onDeletePhoto?(sender.tag)
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let photoCount = photos.count
+        let isAddButtonCell = indexPath.item == photoCount && photoCount < maxPhotos
+        
+        if isAddButtonCell {
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: AddPhotoCollectionViewCell.identifier, for: indexPath) as! AddPhotoCollectionViewCell
+            return cell
+        } else {
+            guard indexPath.item < photos.count else {
+                // 안전장치: 인덱스 범위를 벗어나면 빈 셀 반환
+                return UICollectionViewCell()
+            }
+            
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: PhotoCollectionViewCell.identifier, for: indexPath) as! PhotoCollectionViewCell
+            let image = photos[indexPath.item]
+            cell.configure(image: image)
+            
+            cell.onDelete = { [weak self] in
+                self?.onDeletePhoto?(indexPath.item)
+            }
+            
+            return cell
+        }
+    }
+}
+
+// MARK: - UICollectionViewDelegate
+
+extension RecordItemView: UICollectionViewDelegate {
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        let photoCount = photos.count
+        let isAddButtonCell = indexPath.item == photoCount && photoCount < maxPhotos
+        
+        if isAddButtonCell {
+            onTap?()
+        }
     }
 }
