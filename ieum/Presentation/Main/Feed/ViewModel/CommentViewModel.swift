@@ -14,6 +14,8 @@ final class CommentViewModel: ObservableObject {
     let didTapReply = PassthroughSubject<Comment, Never>()
     let didTapReport = PassthroughSubject<Int, Never>() // Comment ID
     let didTapLike = PassthroughSubject<Int, Never>() // Comment ID
+    let didTapEdit = PassthroughSubject<Int, Never>() // Comment ID
+    let didTapDelete = PassthroughSubject<Int, Never>() // Comment ID
     
     // Outputs
     @Published private(set) var comments: [Comment] = []
@@ -22,17 +24,22 @@ final class CommentViewModel: ObservableObject {
     @Published private(set) var isLoading: Bool = false
     @Published private(set) var error: Error?
     let commentPostedSuccessfully = PassthroughSubject<Void, Never>()
+    let navigateToEdit = PassthroughSubject<(id: Int, content: String), Never>()
     
+    private var currentUserId: Int?
     private let feedRepository: FeedRepository
+    private let authRepository: AuthRepository
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Initializer
     
-    init(postId: Int, postType: PostType, feedRepository: FeedRepository = FeedRepositoryImpl()) {
+    init(postId: Int, postType: PostType, feedRepository: FeedRepository = FeedRepositoryImpl(), authRepository: AuthRepository = AuthRepositoryImpl()) {
         self.postId = postId
         self.postType = postType
         self.feedRepository = feedRepository
+        self.authRepository = authRepository
         bindInputs()
+        fetchCurrentUserId()
     }
     
     // MARK: - Binding
@@ -67,6 +74,43 @@ final class CommentViewModel: ObservableObject {
                 self?.toggleLike(for: commentId)
             }
             .store(in: &cancellables)
+        
+        didTapEdit
+            .sink { [weak self] commentId in
+                self?.handleEdit(commentId: commentId)
+            }
+            .store(in: &cancellables)
+        
+        didTapDelete
+            .sink { [weak self] commentId in
+                self?.deleteComment(id: commentId)
+            }
+            .store(in: &cancellables)
+    }
+    
+    // MARK: - Current User
+    
+    private func fetchCurrentUserId() {
+        authRepository.getProfile()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                if case .failure(let error) = completion {
+                    print("Failed to fetch current user: \(error)")
+                }
+            } receiveValue: { [weak self] profile in
+                self?.currentUserId = profile.id
+            }
+            .store(in: &cancellables)
+    }
+    
+    func isMyComment(_ comment: Comment) -> Bool {
+        guard let currentUserId = currentUserId else { return false }
+        return comment.userId == currentUserId
+    }
+    
+    func isMyComment(_ reply: Reply) -> Bool {
+        guard let currentUserId = currentUserId else { return false }
+        return reply.userId == currentUserId
     }
     
     // MARK: - Logic
@@ -147,6 +191,54 @@ final class CommentViewModel: ObservableObject {
                 
                 // 좋아요 상태 업데이트
                 self.likes[id] = (isLiked: response.isLiked, count: response.likesCount)
+            }
+            .store(in: &cancellables)
+    }
+    
+    // MARK: - Edit/Delete
+    
+    private func handleEdit(commentId: Int) {
+        // 댓글 또는 대댓글 찾기
+        for comment in comments {
+            if comment.id == commentId {
+                navigateToEdit.send((id: comment.id, content: comment.content))
+                return
+            }
+            for reply in comment.replies {
+                if reply.id == commentId {
+                    navigateToEdit.send((id: reply.id, content: reply.content))
+                    return
+                }
+            }
+        }
+    }
+    
+    func updateComment(id: Int, content: String) {
+        feedRepository.updateComment(postType: postType, postId: postId, commentId: id, content: content)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                if case .failure(let error) = completion {
+                    self?.error = error
+                }
+            } receiveValue: { [weak self] _ in
+                guard let self = self else { return }
+                // 댓글 수정 성공 후 목록 새로고침
+                self.fetchComments()
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func deleteComment(id: Int) {
+        feedRepository.deleteComment(postType: postType, postId: postId, commentId: id)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                if case .failure(let error) = completion {
+                    self?.error = error
+                }
+            } receiveValue: { [weak self] _ in
+                guard let self = self else { return }
+                // 댓글 삭제 성공 후 목록 새로고침
+                self.fetchComments()
             }
             .store(in: &cancellables)
     }

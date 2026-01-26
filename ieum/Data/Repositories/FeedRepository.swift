@@ -19,6 +19,8 @@ protocol FeedRepository {
     func createComment(postType: PostType, postId: Int, content: String, parentId: Int?) -> AnyPublisher<CreateCommentResponse, Error>
     func likeComment(postType: PostType, postId: Int, commentId: Int) -> AnyPublisher<CommentLikeResponse, Error>
     func unlikeComment(postType: PostType, postId: Int, commentId: Int) -> AnyPublisher<CommentLikeResponse, Error>
+    func updateComment(postType: PostType, postId: Int, commentId: Int, content: String) -> AnyPublisher<CreateCommentResponse, Error>
+    func deleteComment(postType: PostType, postId: Int, commentId: Int) -> AnyPublisher<Void, Error>
     
     // 수정/삭제
     func updateWellnessPost(id: Int, data: UpdateWellnessPostData, images: [Data]?) -> AnyPublisher<WellnessPostResponse, Error>
@@ -228,6 +230,39 @@ final class FeedRepositoryImpl: FeedRepository {
                 do {
                     let response: CommentLikeResponse = try await self.apiService.request(endpoint, method: .delete)
                     promise(.success(response))
+                } catch {
+                    promise(.failure(error))
+                }
+            }
+        }.eraseToAnyPublisher()
+    }
+    
+    func updateComment(postType: PostType, postId: Int, commentId: Int, content: String) -> AnyPublisher<CreateCommentResponse, Error> {
+        let endpoint = "/api/v1/posts/\(postType.rawValue)/\(postId)/comments/\(commentId)"
+        let request = UpdateCommentRequest(content: content)
+        
+        return Future { [weak self] promise in
+            guard let self = self else { return }
+            Task {
+                do {
+                    let response: CreateCommentResponse = try await self.apiService.request(endpoint, method: .patch, parameters: request)
+                    promise(.success(response))
+                } catch {
+                    promise(.failure(error))
+                }
+            }
+        }.eraseToAnyPublisher()
+    }
+    
+    func deleteComment(postType: PostType, postId: Int, commentId: Int) -> AnyPublisher<Void, Error> {
+        let endpoint = "/api/v1/posts/\(postType.rawValue)/\(postId)/comments/\(commentId)"
+        
+        return Future { [weak self] promise in
+            guard let self = self else { return }
+            Task {
+                do {
+                    try await self.apiService.requestNoContent(endpoint, method: .delete)
+                    promise(.success(()))
                 } catch {
                     promise(.failure(error))
                 }

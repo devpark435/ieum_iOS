@@ -95,6 +95,12 @@ struct CreateCommentRequest: Codable, Sendable {
     let parentId: Int?
 }
 
+// MARK: - Update Comment Request
+
+struct UpdateCommentRequest: Codable, Sendable {
+    let content: String
+}
+
 // MARK: - Create Comment Response
 
 struct CreateCommentResponse: Codable, Sendable {

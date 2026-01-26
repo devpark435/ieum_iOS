@@ -11,6 +11,8 @@ final class CommentCell: UITableViewCell {
     var onReplyTapped: (() -> Void)?
     var onMenuTapped: (() -> Void)?
     var onLikeTapped: (() -> Void)?
+    var onEditTapped: (() -> Void)?
+    var onDeleteTapped: (() -> Void)?
     
     // MARK: - UI Components
     
@@ -239,7 +241,7 @@ final class CommentCell: UITableViewCell {
     
     // MARK: - Configuration
     
-    func configure(username: String, content: String, date: String, isReply: Bool, isLiked: Bool, likeCount: Int) {
+    func configure(username: String, content: String, date: String, isReply: Bool, isLiked: Bool, likeCount: Int, isMyComment: Bool) {
         usernameLabel.text = username
         commentLabel.text = content
         // dateLabel.text = date
@@ -264,15 +266,27 @@ final class CommentCell: UITableViewCell {
             replyButton.isHidden = false
         }
         
-        setupMenu()
+        setupMenu(isMyComment: isMyComment)
     }
     
-    private func setupMenu() {
-        let reportAction = UIAction(title: "신고하기", image: UIImage(systemName: "exclamationmark.bubble"), attributes: .destructive) { [weak self] _ in
-            self?.onMenuTapped?()
+    private func setupMenu(isMyComment: Bool) {
+        if isMyComment {
+            let editAction = UIAction(title: "수정", image: UIImage(systemName: "pencil")) { [weak self] _ in
+                self?.onEditTapped?()
+            }
+            
+            let deleteAction = UIAction(title: "삭제", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+                self?.onDeleteTapped?()
+            }
+            
+            menuButton.menu = UIMenu(title: "", children: [editAction, deleteAction])
+        } else {
+            let reportAction = UIAction(title: "신고하기", image: UIImage(systemName: "exclamationmark.bubble"), attributes: .destructive) { [weak self] _ in
+                self?.onMenuTapped?()
+            }
+            
+            menuButton.menu = UIMenu(title: "", children: [reportAction])
         }
-        
-        menuButton.menu = UIMenu(title: "", children: [reportAction])
     }
     
     // MARK: - Actions
