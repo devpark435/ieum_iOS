@@ -11,6 +11,10 @@ class SignUpStep5ViewController: UIViewController {
     private let viewModel = SignUpStep5ViewModel()
     private var cancellables = Set<AnyCancellable>()
     
+    var isEditMode: Bool = false
+    var onComplete: ((String?) -> Void)?
+    private var initialAgeGroup: String?
+    
     // MARK: - UI Components
     
     private let stepBadgeChip = IeumChip(title: "4 / 7", type: .static).then {
@@ -58,16 +62,36 @@ class SignUpStep5ViewController: UIViewController {
     
     private var buttons: [IeumButton] = []
     
+    // MARK: - Initializers
+    
+    convenience init(initialAgeGroup: String?, onComplete: @escaping (String?) -> Void) {
+        self.init()
+        self.isEditMode = true
+        self.initialAgeGroup = initialAgeGroup
+        self.onComplete = onComplete
+    }
+    
     // MARK: - Life Cycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = Colors.ieumBackground // FBFDF4
+        view.backgroundColor = Colors.ieumBackground
         
         setupUI()
         setupLayout()
         setupActions()
         bindViewModel()
+        
+        if isEditMode {
+            stepBadgeChip.isHidden = true
+            titleLabel.text = "연령대 수정"
+            skipButton.isHidden = true
+            nextButton.setTitle("완료", for: .normal)
+            bottomStackView.distribution = .fill
+            if let initialAgeGroup = initialAgeGroup {
+                setupInitialAgeGroup(initialAgeGroup)
+            }
+        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -167,7 +191,20 @@ class SignUpStep5ViewController: UIViewController {
     }
     
     @objc private func didTapNext() {
-        viewModel.didTapNext.send()
+        if isEditMode {
+            let ageGroup = viewModel.selectedAgeGroup.flatMap { title in
+                AgeGroup.allCases.first(where: { $0.title == title })?.rawValue
+            }
+            onComplete?(ageGroup)
+        } else {
+            viewModel.didTapNext.send()
+        }
+    }
+    
+    private func setupInitialAgeGroup(_ ageGroup: String) {
+        if let ageGroupTitle = AgeGroup.allCases.first(where: { $0.rawValue == ageGroup })?.title {
+            viewModel.didSelectAgeGroup.send(ageGroupTitle)
+        }
     }
 }
 

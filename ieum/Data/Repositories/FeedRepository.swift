@@ -5,6 +5,7 @@ import Alamofire
 protocol FeedRepository {
     // 조회
     func fetchPosts(type: PostType, page: Int, pageSize: Int, diagnosis: String?, mood: Int?) -> AnyPublisher<AllPostsResponse, Error>
+    func fetchMyPosts(type: String?, page: Int, pageSize: Int, sort: String?, order: String?, diagnosis: String?, fromDate: String?, toDate: String?) -> AnyPublisher<FeedResponse, Error>
     
     // 작성
     func createWellnessPost(data: CreateWellnessPostData, images: [Data]?) -> AnyPublisher<WellnessPostResponse, Error>
@@ -57,6 +58,47 @@ final class FeedRepositoryImpl: FeedRepository {
             Task {
                 do {
                     let response: AllPostsResponse = try await self.apiService.request(endpoint, method: .get)
+                    promise(.success(response))
+                } catch {
+                    promise(.failure(error))
+                }
+            }
+        }.eraseToAnyPublisher()
+    }
+    
+    func fetchMyPosts(type: String?, page: Int, pageSize: Int, sort: String?, order: String?, diagnosis: String?, fromDate: String?, toDate: String?) -> AnyPublisher<FeedResponse, Error> {
+        var queryItems: [URLQueryItem] = []
+        
+        if let type = type {
+            queryItems.append(URLQueryItem(name: "type", value: type))
+        }
+        queryItems.append(URLQueryItem(name: "page", value: String(page)))
+        queryItems.append(URLQueryItem(name: "pageSize", value: String(pageSize)))
+        if let sort = sort {
+            queryItems.append(URLQueryItem(name: "sort", value: sort))
+        }
+        if let order = order {
+            queryItems.append(URLQueryItem(name: "order", value: order))
+        }
+        if let diagnosis = diagnosis {
+            queryItems.append(URLQueryItem(name: "diagnosis", value: diagnosis))
+        }
+        if let fromDate = fromDate {
+            queryItems.append(URLQueryItem(name: "fromDate", value: fromDate))
+        }
+        if let toDate = toDate {
+            queryItems.append(URLQueryItem(name: "toDate", value: toDate))
+        }
+        
+        var components = URLComponents(string: "/api/v1/users/posts")
+        components?.queryItems = queryItems
+        let endpoint = components?.url?.absoluteString ?? "/api/v1/users/posts"
+        
+        return Future { [weak self] promise in
+            guard let self = self else { return }
+            Task {
+                do {
+                    let response: FeedResponse = try await self.apiService.request(endpoint, method: .get)
                     promise(.success(response))
                 } catch {
                     promise(.failure(error))

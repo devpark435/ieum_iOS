@@ -7,10 +7,14 @@ class SignUpStep4ViewController: UIViewController {
     
     // MARK: - Properties
     
-    weak var coordinator: SignUpCoordinator?
+    weak var coordinator: AnyObject?
     private let viewModel = SignUpStep4ViewModel()
     private var cancellables = Set<AnyCancellable>()
     private var diagnosisButtons: [String: IeumButton] = [:]
+    
+    var isEditMode: Bool = false
+    var onComplete: (([DiagnosisRequest]) -> Void)?
+    private var initialDiagnoses: [UserDiagnosis]?
     
     // MARK: - UI Components
     
@@ -55,6 +59,15 @@ class SignUpStep4ViewController: UIViewController {
         $0.addTarget(self, action: #selector(didTapNext), for: .touchUpInside) // 타겟 추가
     }
     
+    // MARK: - Initializers
+    
+    convenience init(initialDiagnoses: [UserDiagnosis]?, onComplete: @escaping ([DiagnosisRequest]) -> Void) {
+        self.init()
+        self.isEditMode = true
+        self.initialDiagnoses = initialDiagnoses
+        self.onComplete = onComplete
+    }
+    
     // MARK: - Life Cycle
     
     override func viewDidLoad() {
@@ -64,6 +77,15 @@ class SignUpStep4ViewController: UIViewController {
         setupUI()
         setupLayout()
         bindViewModel()
+        
+        if isEditMode {
+            stepBadgeChip.isHidden = true
+            titleLabel.text = "진단명 수정"
+            nextButton.setTitle("완료", for: .normal)
+            if let initialDiagnoses = initialDiagnoses {
+                setupInitialDiagnoses(initialDiagnoses)
+            }
+        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -179,7 +201,9 @@ class SignUpStep4ViewController: UIViewController {
         viewModel.navigateToNext
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in
-                self?.coordinator?.showStep5()
+                if let signUpCoordinator = self?.coordinator as? SignUpCoordinator {
+                    signUpCoordinator.showStep5()
+                }
             }
             .store(in: &cancellables)
     }
@@ -214,10 +238,41 @@ class SignUpStep4ViewController: UIViewController {
     }
     
     private func showStageSelection(for diagnosisName: String) {
-        coordinator?.showStageSelection(cancerName: diagnosisName) { [weak self] stage in
-            guard let self = self else { return }
-            self.viewModel.selectDiagnosis(diagnosisName, stage: stage)
+        if let signUpCoordinator = coordinator as? SignUpCoordinator {
+            signUpCoordinator.showStageSelection(cancerName: diagnosisName) { [weak self] stage in
+                guard let self = self else { return }
+                self.viewModel.selectDiagnosis(diagnosisName, stage: stage)
+            }
+        } else if let myPageCoordinator = coordinator as? MyPageCoordinator {
+            myPageCoordinator.showStageSelection(cancerName: diagnosisName) { [weak self] stage in
+                guard let self = self else { return }
+                self.viewModel.selectDiagnosis(diagnosisName, stage: stage)
+            }
         }
+    }
+    
+    private func setupInitialDiagnoses(_ diagnoses: [UserDiagnosis]) {
+        var selectedDiagnosis: [String: String] = [:]
+        for diagnosis in diagnoses {
+            let title: String
+            switch diagnosis.diagnosis {
+            case "rectal_cancer": title = "직장암"
+            case "colon_cancer": title = "대장암"
+            case "liver_transplant": title = "간이식"
+            case "others": title = "기타"
+            default: title = "기타"
+            }
+            if let stage = diagnosis.cancerStage {
+                selectedDiagnosis[title] = "\(stage)기"
+            } else {
+                selectedDiagnosis[title] = ""
+            }
+        }
+        
+        for (title, stage) in selectedDiagnosis {
+            viewModel.selectDiagnosis(title, stage: stage)
+        }
+        viewModel.updateState()
     }
     
     // MARK: - Actions
@@ -228,7 +283,19 @@ class SignUpStep4ViewController: UIViewController {
     }
     
     @objc private func didTapNext() {
-        viewModel.didTapNext.send()
+        if isEditMode {
+            let diagnoses = viewModel.selectedDiagnosis.map { (key, value) -> DiagnosisRequest in
+                let stage: Int? = (value.isEmpty) ? nil : Int(value.replacingOccurrences(of: "기", with: ""))
+                var diagnosisType: DiagnosisType = .others
+                if key == "직장암" { diagnosisType = .rectalCancer }
+                else if key == "대장암" { diagnosisType = .colonCancer }
+                else if key == "간이식" { diagnosisType = .liverTransplant }
+                return DiagnosisRequest(diagnosis: diagnosisType, cancerStage: stage)
+            }
+            onComplete?(diagnoses)
+        } else {
+            viewModel.didTapNext.send()
+        }
     }
 }
 

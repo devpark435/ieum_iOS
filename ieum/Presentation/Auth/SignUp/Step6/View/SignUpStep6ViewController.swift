@@ -11,6 +11,10 @@ class SignUpStep6ViewController: UIViewController {
     private let viewModel = SignUpStep6ViewModel()
     private var cancellables = Set<AnyCancellable>()
     
+    var isEditMode: Bool = false
+    var onComplete: ((String?) -> Void)?
+    private var initialResidenceArea: String?
+    
     // MARK: - UI Components
     
     private let stepBadgeChip = IeumChip(title: "5 / 7", type: .static).then {
@@ -92,6 +96,15 @@ class SignUpStep6ViewController: UIViewController {
         return viewModel.currentDistricts
     }
     
+    // MARK: - Initializers
+    
+    convenience init(initialResidenceArea: String?, onComplete: @escaping (String?) -> Void) {
+        self.init()
+        self.isEditMode = true
+        self.initialResidenceArea = initialResidenceArea
+        self.onComplete = onComplete
+    }
+    
     // MARK: - Life Cycle
     
     override func viewDidLoad() {
@@ -104,9 +117,20 @@ class SignUpStep6ViewController: UIViewController {
         setupActions()
         bindViewModel()
         
-        // 초기 선택 상태 (서울)
-        DispatchQueue.main.async { [weak self] in
-            self?.cityTableView.selectRow(at: IndexPath(row: 0, section: 0), animated: false, scrollPosition: .top)
+        if isEditMode {
+            stepBadgeChip.isHidden = true
+            titleLabel.text = "거주 지역 수정"
+            skipButton.isHidden = true
+            nextButton.setTitle("완료", for: .normal)
+            bottomStackView.distribution = .fill
+            if let initialResidenceArea = initialResidenceArea {
+                setupInitialResidenceArea(initialResidenceArea)
+            }
+        } else {
+            // 초기 선택 상태 (서울)
+            DispatchQueue.main.async { [weak self] in
+                self?.cityTableView.selectRow(at: IndexPath(row: 0, section: 0), animated: false, scrollPosition: .top)
+            }
         }
     }
     
@@ -270,7 +294,36 @@ class SignUpStep6ViewController: UIViewController {
     }
     
     @objc private func didTapNext() {
-        viewModel.didTapNext.send()
+        if isEditMode {
+            let selectedArea: String?
+            if let cityIndex = viewModel.selectedCityIndex,
+               let districtIndex = viewModel.selectedDistrictIndex,
+               cityIndex < viewModel.cities.count,
+               districtIndex < viewModel.currentDistricts.count {
+                selectedArea = "\(viewModel.cities[cityIndex]) \(viewModel.currentDistricts[districtIndex])"
+            } else {
+                selectedArea = nil
+            }
+            onComplete?(selectedArea)
+        } else {
+            viewModel.didTapNext.send()
+        }
+    }
+    
+    private func setupInitialResidenceArea(_ residenceArea: String) {
+        let components = residenceArea.split(separator: " ").map(String.init)
+        if components.count >= 2 {
+            let city = components[0]
+            let district = components[1]
+            if let cityIndex = viewModel.cities.firstIndex(of: city) {
+                viewModel.didSelectCity.send(cityIndex)
+                if let districtIndex = viewModel.districts[city]?.firstIndex(of: district) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                        self?.viewModel.didSelectDistrict.send(districtIndex)
+                    }
+                }
+            }
+        }
     }
 }
 

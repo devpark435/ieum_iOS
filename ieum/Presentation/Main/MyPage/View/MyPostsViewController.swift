@@ -24,6 +24,11 @@ final class MyPostsViewController: UIViewController {
         $0.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 20, right: 0)
     }
     
+    private let loadingIndicator = UIActivityIndicatorView(style: .medium).then {
+        $0.hidesWhenStopped = true
+        $0.color = Colors.Gray.g600
+    }
+    
     // MARK: - Initializer
     
     init(viewModel: MyPostsViewModel) {
@@ -54,6 +59,7 @@ final class MyPostsViewController: UIViewController {
     private func setupUI() {
         view.addSubview(filterChipView)
         view.addSubview(tableView)
+        view.addSubview(loadingIndicator)
     }
     
     private func setupLayout() {
@@ -68,6 +74,11 @@ final class MyPostsViewController: UIViewController {
             $0.top.equalTo(filterChipView.snp.bottom).offset(16)
             $0.leading.trailing.equalToSuperview().inset(20)
             $0.bottom.equalToSuperview()
+        }
+        
+        loadingIndicator.snp.makeConstraints {
+            $0.centerX.equalToSuperview()
+            $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(20)
         }
     }
     
@@ -85,6 +96,17 @@ final class MyPostsViewController: UIViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.tableView.reloadData()
+            }
+            .store(in: &cancellables)
+        
+        viewModel.$isLoadingMore
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isLoadingMore in
+                if isLoadingMore {
+                    self?.loadingIndicator.startAnimating()
+                } else {
+                    self?.loadingIndicator.stopAnimating()
+                }
             }
             .store(in: &cancellables)
     }
@@ -120,5 +142,11 @@ extension MyPostsViewController: UITableViewDataSource {
 extension MyPostsViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         return UITableView.automaticDimension
+    }
+    
+    func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        if indexPath.row == viewModel.posts.count - 1 {
+            viewModel.loadMore.send()
+        }
     }
 }
