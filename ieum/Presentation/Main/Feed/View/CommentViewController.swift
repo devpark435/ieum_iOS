@@ -40,6 +40,14 @@ final class CommentViewController: DimmedViewController {
     
     private let commentInputView = CommentInputView()
     
+    private let emptyStateLabel = UILabel().then {
+        $0.textAlignment = .center
+        $0.setIeumText("아직 댓글이 없습니다", 
+                        style: UIFont.IeumFont.Text.bodySmall, 
+                        color: Colors.Gray.g400)
+        $0.isHidden = true
+    }
+    
     // MARK: - Initializer
     
     init(viewModel: CommentViewModel) {
@@ -84,6 +92,7 @@ final class CommentViewController: DimmedViewController {
         
         containerView.addSubview(dragHandleView)
         containerView.addSubview(tableView)
+        containerView.addSubview(emptyStateLabel)
         containerView.addSubview(commentInputView)
         
         tableView.delegate = self
@@ -118,6 +127,12 @@ final class CommentViewController: DimmedViewController {
             $0.leading.trailing.equalToSuperview()
             $0.bottom.equalTo(commentInputView.snp.top)
         }
+        
+        emptyStateLabel.snp.makeConstraints {
+            $0.top.equalTo(dragHandleView.snp.bottom).offset(8)
+            $0.leading.trailing.equalToSuperview()
+            $0.bottom.equalTo(commentInputView.snp.top)
+        }
     }
     
     private func setupActions() {
@@ -137,10 +152,19 @@ final class CommentViewController: DimmedViewController {
     }
     
     private func bindViewModel() {
-        viewModel.$comments
+        // Comments 업데이트
+        Publishers.CombineLatest(viewModel.$comments, viewModel.$isLoading)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.tableView.reloadData()
+            .sink { [weak self] comments, isLoading in
+                guard let self = self else { return }
+                
+                let isEmpty = comments.isEmpty && !isLoading
+                self.emptyStateLabel.isHidden = !isEmpty
+                self.tableView.isHidden = isEmpty
+                
+                if !isEmpty {
+                    self.tableView.reloadData()
+                }
             }
             .store(in: &cancellables)
         
@@ -150,6 +174,30 @@ final class CommentViewController: DimmedViewController {
                 if comment != nil {
                     self?.commentInputView.focus()
                 }
+            }
+            .store(in: &cancellables)
+        
+        viewModel.commentPostedSuccessfully
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.commentInputView.clearText()
+            }
+            .store(in: &cancellables)
+        
+        // 좋아요 상태 변경 시 UI 업데이트
+        viewModel.$likes
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                // 좋아요 상태가 변경되면 테이블뷰 리로드
+                self.tableView.reloadData()
+            }
+            .store(in: &cancellables)
+        
+        viewModel.navigateToEdit
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] editInfo in
+                self?.showEditComment(id: editInfo.id, content: editInfo.content)
             }
             .store(in: &cancellables)
             
@@ -225,6 +273,47 @@ final class CommentViewController: DimmedViewController {
         present(alert, animated: true)
     }
     
+    private func showEditComment(id: Int, content: String) {
+        let alert = UIAlertController(title: "댓글 수정", message: nil, preferredStyle: .alert)
+        
+        alert.addTextField { textField in
+            textField.text = content
+            textField.placeholder = "댓글을 입력하세요"
+        }
+        
+        let saveAction = UIAlertAction(title: "수정", style: .default) { [weak self] _ in
+            guard let self = self,
+                  let textField = alert.textFields?.first,
+                  let newContent = textField.text,
+                  !newContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return
+            }
+            self.viewModel.updateComment(id: id, content: newContent)
+        }
+        
+        let cancelAction = UIAlertAction(title: "취소", style: .cancel)
+        
+        alert.addAction(saveAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true)
+    }
+    
+    private func showDeleteConfirmation(for commentId: Int) {
+        let alert = UIAlertController(title: "댓글 삭제", message: "정말 삭제하시겠습니까?", preferredStyle: .alert)
+        
+        let deleteAction = UIAlertAction(title: "삭제", style: .destructive) { [weak self] _ in
+            self?.viewModel.didTapDelete.send(commentId)
+        }
+        
+        let cancelAction = UIAlertAction(title: "취소", style: .cancel)
+        
+        alert.addAction(deleteAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true)
+    }
+    
     // MARK: - Keyboard
     
     @objc private func keyboardWillShow(notification: NSNotification) {
@@ -253,6 +342,28 @@ final class CommentViewController: DimmedViewController {
             self.view.layoutIfNeeded()
         }
     }
+    
+    // MARK: - Helper
+    
+    private func formatRelativeTime(from timestamp: Int) -> String {
+        let now = Int(Date().timeIntervalSince1970)
+        let diff = now - timestamp
+        
+        if diff < 60 {
+            return "방금 전"
+        } else if diff < 3600 {
+            return "\(diff / 60)분 전"
+        } else if diff < 86400 {
+            return "\(diff / 3600)시간 전"
+        } else if diff < 604800 {
+            return "\(diff / 86400)일 전"
+        } else {
+            let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy년 M월 d일"
+            return formatter.string(from: date)
+        }
+    }
 }
 
 // MARK: - UITableViewDelegate & DataSource
@@ -278,13 +389,16 @@ extension CommentViewController: UITableViewDelegate, UITableViewDataSource {
         
         if indexPath.row == 0 {
             // Parent Comment
+            let isMyComment = viewModel.isMyComment(comment)
+            
             cell.configure(
                 username: comment.nickname,
                 content: comment.content,
-                date: "1분 전", // Mock
+                date: formatRelativeTime(from: comment.createdAt),
                 isReply: false,
                 isLiked: likeInfo.isLiked,
-                likeCount: likeInfo.count
+                likeCount: likeInfo.count,
+                isMyComment: isMyComment
             )
             
             cell.onReplyTapped = { [weak self] in
@@ -295,6 +409,14 @@ extension CommentViewController: UITableViewDelegate, UITableViewDataSource {
                 self?.showReportActionSheet(for: comment.id)
             }
             
+            cell.onEditTapped = { [weak self] in
+                self?.showEditComment(id: comment.id, content: comment.content)
+            }
+            
+            cell.onDeleteTapped = { [weak self] in
+                self?.showDeleteConfirmation(for: comment.id)
+            }
+            
             cell.onLikeTapped = { [weak self] in
                 self?.viewModel.didTapLike.send(comment.id)
             }
@@ -303,18 +425,28 @@ extension CommentViewController: UITableViewDelegate, UITableViewDataSource {
             // Reply
             let reply = comment.replies[indexPath.row - 1]
             let replyLikeInfo = viewModel.likes[reply.id] ?? (false, 0)
+            let isMyReply = viewModel.isMyComment(reply)
             
             cell.configure(
                 username: reply.nickname,
                 content: reply.content,
-                date: "1분 전",
+                date: formatRelativeTime(from: reply.createdAt),
                 isReply: true,
                 isLiked: replyLikeInfo.isLiked,
-                likeCount: replyLikeInfo.count
+                likeCount: replyLikeInfo.count,
+                isMyComment: isMyReply
             )
             
             cell.onMenuTapped = { [weak self] in
                 self?.showReportActionSheet(for: reply.id)
+            }
+            
+            cell.onEditTapped = { [weak self] in
+                self?.showEditComment(id: reply.id, content: reply.content)
+            }
+            
+            cell.onDeleteTapped = { [weak self] in
+                self?.showDeleteConfirmation(for: reply.id)
             }
             
             cell.onLikeTapped = { [weak self] in

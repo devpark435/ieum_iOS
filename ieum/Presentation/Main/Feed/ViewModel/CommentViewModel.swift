@@ -1,11 +1,12 @@
 import Foundation
 import Combine
 
-final class CommentViewModel {
+final class CommentViewModel: ObservableObject {
     
     // MARK: - Properties
     
     let postId: Int
+    let postType: PostType
     
     // Inputs
     let viewDidLoad = PassthroughSubject<Void, Never>()
@@ -13,19 +14,32 @@ final class CommentViewModel {
     let didTapReply = PassthroughSubject<Comment, Never>()
     let didTapReport = PassthroughSubject<Int, Never>() // Comment ID
     let didTapLike = PassthroughSubject<Int, Never>() // Comment ID
+    let didTapEdit = PassthroughSubject<Int, Never>() // Comment ID
+    let didTapDelete = PassthroughSubject<Int, Never>() // Comment ID
     
     // Outputs
     @Published private(set) var comments: [Comment] = []
     @Published private(set) var replyingTo: Comment? = nil
     @Published private(set) var likes: [Int: (isLiked: Bool, count: Int)] = [:]
+    @Published private(set) var isLoading: Bool = false
+    @Published private(set) var error: Error?
+    let commentPostedSuccessfully = PassthroughSubject<Void, Never>()
+    let navigateToEdit = PassthroughSubject<(id: Int, content: String), Never>()
     
+    private var currentUserId: Int?
+    private let feedRepository: FeedRepository
+    private let authRepository: AuthRepository
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Initializer
     
-    init(postId: Int) {
+    init(postId: Int, postType: PostType, feedRepository: FeedRepository = FeedRepositoryImpl(), authRepository: AuthRepository = AuthRepositoryImpl()) {
         self.postId = postId
+        self.postType = postType
+        self.feedRepository = feedRepository
+        self.authRepository = authRepository
         bindInputs()
+        fetchCurrentUserId()
     }
     
     // MARK: - Binding
@@ -60,102 +74,93 @@ final class CommentViewModel {
                 self?.toggleLike(for: commentId)
             }
             .store(in: &cancellables)
+        
+        didTapEdit
+            .sink { [weak self] commentId in
+                self?.handleEdit(commentId: commentId)
+            }
+            .store(in: &cancellables)
+        
+        didTapDelete
+            .sink { [weak self] commentId in
+                self?.deleteComment(id: commentId)
+            }
+            .store(in: &cancellables)
+    }
+    
+    // MARK: - Current User
+    
+    private func fetchCurrentUserId() {
+        authRepository.getProfile()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                if case .failure(let error) = completion {
+                    print("Failed to fetch current user: \(error)")
+                }
+            } receiveValue: { [weak self] profile in
+                self?.currentUserId = profile.id
+            }
+            .store(in: &cancellables)
+    }
+    
+    func isMyComment(_ comment: Comment) -> Bool {
+        guard let currentUserId = currentUserId else { return false }
+        return comment.userId == currentUserId
+    }
+    
+    func isMyComment(_ reply: Reply) -> Bool {
+        guard let currentUserId = currentUserId else { return false }
+        return reply.userId == currentUserId
     }
     
     // MARK: - Logic
     
     private func fetchComments() {
-        // Mock Data
-        let mockComments = [
-            Comment(
-                id: 1,
-                userId: 101,
-                nickname: "희망찬환자",
-                content: "좋은 글 감사합니다! 많은 도움이 되었어요.",
-                replies: [
-                    Reply(
-                        id: 11,
-                        userId: 202,
-                        nickname: "응원해요",
-                        content: "저도 동감합니다!",
-                        parentId: 1,
-                        createdAt: Int(Date().timeIntervalSince1970) - 3600,
-                        updatedAt: Int(Date().timeIntervalSince1970) - 3600
-                    )
-                ],
-                createdAt: Int(Date().timeIntervalSince1970) - 7200,
-                updatedAt: Int(Date().timeIntervalSince1970) - 7200
-            ),
-            Comment(
-                id: 2,
-                userId: 102,
-                nickname: "건강이최고",
-                content: "혹시 어떤 식단으로 관리하시나요?",
-                replies: [],
-                createdAt: Int(Date().timeIntervalSince1970) - 86400,
-                updatedAt: Int(Date().timeIntervalSince1970) - 86400
-            )
-        ]
+        isLoading = true
         
-        self.comments = mockComments
-        
-        // Mock Likes
-        self.likes = [
-            1: (isLiked: false, count: 5),
-            11: (isLiked: true, count: 2),
-            2: (isLiked: false, count: 0)
-        ]
+        feedRepository.fetchComments(postType: postType, postId: postId, page: 1, pageSize: 20)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                self?.isLoading = false
+                if case .failure(let error) = completion {
+                    self?.error = error
+                }
+            } receiveValue: { [weak self] response in
+                guard let self = self else { return }
+                
+                self.comments = response.comments
+                
+                // API 응답에는 likes 정보가 없으므로 초기값 설정
+                var initialLikes: [Int: (isLiked: Bool, count: Int)] = [:]
+                for comment in response.comments {
+                    initialLikes[comment.id] = (isLiked: false, count: 0)
+                    for reply in comment.replies {
+                        initialLikes[reply.id] = (isLiked: false, count: 0)
+                    }
+                }
+                self.likes = initialLikes
+            }
+            .store(in: &cancellables)
     }
     
     private func postComment(content: String) {
-        let newId = (comments.map { $0.id }.max() ?? 0) + 1
-        let now = Int(Date().timeIntervalSince1970)
+        let parentId = replyingTo?.id
         
-        if let parent = replyingTo {
-            // Add Reply
-            let newReply = Reply(
-                id: Int.random(in: 1000...9999),
-                userId: 999, // Current User
-                nickname: "나",
-                content: content,
-                parentId: parent.id,
-                createdAt: now,
-                updatedAt: now
-            )
-            
-            if let index = comments.firstIndex(where: { $0.id == parent.id }) {
-                var updatedComment = comments[index]
-                var updatedReplies = updatedComment.replies
-                updatedReplies.append(newReply)
+        feedRepository.createComment(postType: postType, postId: postId, content: content, parentId: parentId)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                if case .failure(let error) = completion {
+                    self?.error = error
+                }
+            } receiveValue: { [weak self] response in
+                guard let self = self else { return }
                 
-                let newComment = Comment(
-                    id: updatedComment.id,
-                    userId: updatedComment.userId,
-                    nickname: updatedComment.nickname,
-                    content: updatedComment.content,
-                    replies: updatedReplies,
-                    createdAt: updatedComment.createdAt,
-                    updatedAt: updatedComment.updatedAt
-                )
-                
-                comments[index] = newComment
+                // 댓글 작성 성공 후 목록 새로고침
+                self.replyingTo = nil
+                self.commentPostedSuccessfully.send()
+                self.fetchComments()
             }
-            
-            replyingTo = nil
-            
-        } else {
-            // Add Top-level Comment
-            let newComment = Comment(
-                id: newId,
-                userId: 999,
-                nickname: "나",
-                content: content,
-                replies: [],
-                createdAt: now,
-                updatedAt: now
-            )
-            comments.append(newComment)
-        }
+            .store(in: &cancellables)
     }
     
     private func reportComment(id: Int) {
@@ -163,15 +168,78 @@ final class CommentViewModel {
     }
     
     private func toggleLike(for id: Int) {
-        guard let current = likes[id] else {
-            // Initialize if not exists
-            likes[id] = (isLiked: true, count: 1)
-            return
+        // 현재 좋아요 상태 확인
+        let currentLikeInfo = likes[id] ?? (isLiked: false, count: 0)
+        let isCurrentlyLiked = currentLikeInfo.isLiked
+        
+        // 좋아요 상태에 따라 적절한 API 호출
+        let publisher: AnyPublisher<CommentLikeResponse, Error>
+        if isCurrentlyLiked {
+            publisher = feedRepository.unlikeComment(postType: postType, postId: postId, commentId: id)
+        } else {
+            publisher = feedRepository.likeComment(postType: postType, postId: postId, commentId: id)
         }
         
-        let newIsLiked = !current.isLiked
-        let newCount = current.count + (newIsLiked ? 1 : -1)
-        likes[id] = (isLiked: newIsLiked, count: newCount)
+        publisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                if case .failure(let error) = completion {
+                    self?.error = error
+                }
+            } receiveValue: { [weak self] response in
+                guard let self = self else { return }
+                
+                // 좋아요 상태 업데이트
+                self.likes[id] = (isLiked: response.isLiked, count: response.likesCount)
+            }
+            .store(in: &cancellables)
+    }
+    
+    // MARK: - Edit/Delete
+    
+    private func handleEdit(commentId: Int) {
+        // 댓글 또는 대댓글 찾기
+        for comment in comments {
+            if comment.id == commentId {
+                navigateToEdit.send((id: comment.id, content: comment.content))
+                return
+            }
+            for reply in comment.replies {
+                if reply.id == commentId {
+                    navigateToEdit.send((id: reply.id, content: reply.content))
+                    return
+                }
+            }
+        }
+    }
+    
+    func updateComment(id: Int, content: String) {
+        feedRepository.updateComment(postType: postType, postId: postId, commentId: id, content: content)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                if case .failure(let error) = completion {
+                    self?.error = error
+                }
+            } receiveValue: { [weak self] _ in
+                guard let self = self else { return }
+                // 댓글 수정 성공 후 목록 새로고침
+                self.fetchComments()
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func deleteComment(id: Int) {
+        feedRepository.deleteComment(postType: postType, postId: postId, commentId: id)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] completion in
+                if case .failure(let error) = completion {
+                    self?.error = error
+                }
+            } receiveValue: { [weak self] _ in
+                guard let self = self else { return }
+                // 댓글 삭제 성공 후 목록 새로고침
+                self.fetchComments()
+            }
+            .store(in: &cancellables)
     }
 }
-

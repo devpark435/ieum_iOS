@@ -101,14 +101,16 @@ final class CommentInputView: UIView {
             $0.height.greaterThanOrEqualTo(40)
         }
         
+        
         textView.snp.makeConstraints {
             $0.leading.equalToSuperview().offset(16)
             $0.trailing.equalToSuperview().offset(-16)
             $0.top.equalToSuperview().offset(10)
             $0.bottom.equalToSuperview().offset(-10)
-            $0.height.greaterThanOrEqualTo(20).priority(.high) // Lower priority
+            $0.height.equalTo(20).priority(.high)
             $0.height.lessThanOrEqualTo(100)
         }
+        
         
         placeholderLabel.snp.makeConstraints {
             $0.leading.equalTo(textView)
@@ -135,6 +137,11 @@ final class CommentInputView: UIView {
     
     func resign() {
         textView.resignFirstResponder()
+    }
+    
+    func clearText() {
+        textView.text = ""
+        textViewDidChange(textView)
     }
 }
 

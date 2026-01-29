@@ -99,6 +99,14 @@ final class DailyInputView: UIView {
     @objc private func textFieldDidChange(_ textField: UITextField) {
         onTitleChanged?(textField.text ?? "")
     }
+    
+    // MARK: - Public Methods
+    
+    func setInitialValues(title: String?, content: String?) {
+        titleTextField.text = title
+        contentTextView.text = content
+        placeholderLabel.isHidden = !(content?.isEmpty ?? true)
+    }
 }
 
 // MARK: - UITextViewDelegate

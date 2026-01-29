@@ -169,8 +169,23 @@ final class FeedViewController: UIViewController {
             
         viewModel.navigateToComments
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] postId in
-                self?.coordinator?.showComments(postId: postId)
+            .sink { [weak self] tuple in
+                self?.coordinator?.showComments(postId: tuple.0, postType: tuple.1)
+            }
+            .store(in: &cancellables)
+        
+        viewModel.navigateToEdit
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] post in
+                guard let self = self else { return }
+                switch post.type {
+                case .wellness:
+                    self.coordinator?.showEditTreatmentRecord(post: post)
+                case .daily:
+                    self.coordinator?.showEditDailyRecord(post: post)
+                case .all:
+                    break
+                }
             }
             .store(in: &cancellables)
         
@@ -184,12 +199,7 @@ final class FeedViewController: UIViewController {
     }
     
     private func updateTableViewHeight() {
-        // 테이블 뷰 높이 업데이트
-        // 셀의 높이가 동적이므로 contentSize를 사용하여 업데이트하거나,
-        // 테이블 뷰의 제약조건을 bottom에 맞추고 스크롤 가능하게 변경해야 할 수도 있음.
-        // 현재 구조: ScrollView -> ContentView -> TableView (isScrollEnabled=false)
-        
-        tableView.layoutIfNeeded() // 레이아웃 갱신
+        tableView.layoutIfNeeded()
         let totalHeight = tableView.contentSize.height
         
         tableView.snp.updateConstraints {
@@ -197,10 +207,26 @@ final class FeedViewController: UIViewController {
         }
     }
     
-    // MARK: - Actions
-    
     @objc private func didTapNotification() {
-        // TODO: 알림 리스트 화면으로 이동
+    }
+    
+    private func showDeleteConfirmation(for post: Post) {
+        let alert = UIAlertController(
+            title: "게시글 삭제",
+            message: "정말로 이 게시글을 삭제하시겠습니까?",
+            preferredStyle: .alert
+        )
+        
+        let deleteAction = UIAlertAction(title: "삭제", style: .destructive) { [weak self] _ in
+            self?.viewModel.didTapDelete.send(post)
+        }
+        
+        let cancelAction = UIAlertAction(title: "취소", style: .cancel)
+        
+        alert.addAction(deleteAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true)
     }
     
     private func showWritePostBottomSheet() {
@@ -239,41 +265,42 @@ extension FeedViewController: UITableViewDataSource {
         }
         
         let post = viewModel.posts[indexPath.row]
-        cell.configure(with: post)
+        let isMyPost = viewModel.isMyPost(post)
+        cell.configure(with: post, isMyPost: isMyPost)
         
-        // 셀 확장 상태 업데이트
         cell.onSeeMoreTapped = { [weak self] in
             guard let self = self else { return }
-            
-            // 테이블 뷰 갱신 (셀 높이 재계산)
             self.tableView.beginUpdates()
             self.tableView.endUpdates()
-            
-            // 전체 높이 재조정 (약간의 딜레이를 주어 애니메이션 완료 후 정확한 크기 계산)
             DispatchQueue.main.async {
                 self.updateTableViewHeight()
             }
         }
         
-        cell.onLikeTapped = {
-            // TODO: 좋아요 API 호출
+        cell.onLikeTapped = { [weak self] in
+            self?.viewModel.didTapLike.send(post.id)
         }
         
         cell.onCommentTapped = { [weak self] in
-            // 댓글 화면으로 이동
             self?.viewModel.didTapComment.send(post.id)
         }
         
         cell.onBookmarkTapped = {
-            // TODO: 북마크 API 호출
         }
         
         cell.onShareTapped = {
-            // TODO: 공유 기능
         }
         
-        cell.onMenuTapped = {
-            // TODO: 메뉴 표시
+        cell.onEditTapped = { [weak self] post in
+            self?.viewModel.didTapEdit.send(post)
+        }
+        
+        cell.onDeleteTapped = { [weak self] post in
+            self?.showDeleteConfirmation(for: post)
+        }
+        
+        cell.onReportTapped = { [weak self] post in
+            self?.viewModel.didTapReport.send(post)
         }
         
         return cell

@@ -47,7 +47,7 @@ final class DailyRecordViewController: UIViewController {
     private let photoRecordView = RecordItemView(
         iconName: "photo-icon",
         title: "사진추가",
-        subtitle: "최대 3장까지 가능합니다."
+        subtitle: "최대 5장까지 가능합니다."
     )
     
     private let shareView = RecordShareView().then {
@@ -68,6 +68,12 @@ final class DailyRecordViewController: UIViewController {
         self.modalPresentationStyle = .fullScreen
     }
     
+    init(post: Post) {
+        self.viewModel = DailyRecordViewModel(post: post)
+        super.init(nibName: nil, bundle: nil)
+        self.modalPresentationStyle = .fullScreen
+    }
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -81,6 +87,12 @@ final class DailyRecordViewController: UIViewController {
         setupLayout()
         setupActions()
         bindViewModel()
+        
+        // 수정 모드일 때 UI 업데이트
+        if viewModel.initialTitle != "" || viewModel.initialContent != "" {
+            titleLabel.text = "일상 기록 수정"
+            postButton.setTitle("수정하기", for: .normal)
+        }
     }
     
     // MARK: - Setup
@@ -192,6 +204,15 @@ final class DailyRecordViewController: UIViewController {
             }
             .store(in: &cancellables)
             
+        // 수정 모드일 때 초기값 설정
+        if viewModel.initialTitle != "" || viewModel.initialContent != "" {
+            inputViewComponent.setInitialValues(
+                title: viewModel.initialTitle.isEmpty ? nil : viewModel.initialTitle,
+                content: viewModel.initialContent.isEmpty ? nil : viewModel.initialContent
+            )
+            shareView.isChecked = viewModel.initialIsPublic
+        }
+            
         viewModel.dismiss
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in
@@ -202,9 +223,7 @@ final class DailyRecordViewController: UIViewController {
         viewModel.postSuccess
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in
-                self?.dismiss(animated: true) {
-                    Toast.show(message: "일상기록 작성을 완료 하였습니다.")
-                }
+                self?.dismiss(animated: true)
             }
             .store(in: &cancellables)
     }
@@ -221,7 +240,7 @@ final class DailyRecordViewController: UIViewController {
     
     private func showPhotoPicker() {
         var config = PHPickerConfiguration()
-        config.selectionLimit = 3 - viewModel.photos.count // Dynamic limit
+        config.selectionLimit = 5 - viewModel.photos.count // Dynamic limit
         config.filter = .images
         
         let picker = PHPickerViewController(configuration: config)

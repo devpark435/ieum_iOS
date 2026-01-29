@@ -51,9 +51,15 @@ struct TreatmentRecordModel {
         guard let mood = mood,
               let medication = medication else { return nil }
         
-        var dietData: DietData?
+        var diet: Diet?
         if let meal = meal {
-            dietData = DietData(amountEaten: meal.apiValue, mealContent: mealDescription)
+            let amountEaten: AmountEaten
+            switch meal {
+            case .good: amountEaten = .wellEaten
+            case .little: amountEaten = .smallAmount
+            case .bad: amountEaten = .barelyEaten
+            }
+            diet = Diet(amountEaten: amountEaten, mealContent: mealDescription)
         }
         
         return CreateWellnessPostData(
@@ -61,7 +67,7 @@ struct TreatmentRecordModel {
             mood: mood,
             unusualSymptoms: symptom,
             medicationTaken: medication.apiValue,
-            diet: dietData,
+            diet: diet,
             memo: memo,
             shared: isPublic
         )
