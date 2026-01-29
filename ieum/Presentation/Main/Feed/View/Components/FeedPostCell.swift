@@ -1,6 +1,7 @@
 import UIKit
 import SnapKit
 import Then
+import Kingfisher
 
 /// 피드 포스트 셀
 final class FeedPostCell: UITableViewCell {
@@ -13,8 +14,13 @@ final class FeedPostCell: UITableViewCell {
     var onCommentTapped: (() -> Void)?
     var onBookmarkTapped: (() -> Void)?
     var onShareTapped: (() -> Void)?
-    var onMenuTapped: (() -> Void)?
+    var onEditTapped: ((Post) -> Void)?
+    var onDeleteTapped: ((Post) -> Void)?
+    var onReportTapped: ((Post) -> Void)?
     var onSeeMoreTapped: (() -> Void)?
+    
+    private var currentPost: Post?
+    private var isMyPost: Bool = false
     
     private var isLiked = false
     private var isBookmarked = false
@@ -46,6 +52,36 @@ final class FeedPostCell: UITableViewCell {
         $0.clipsToBounds = true
         $0.layer.cornerRadius = 16
     }
+    
+    private lazy var imageCollectionView: UICollectionView = {
+        let layout = UICollectionViewFlowLayout()
+        layout.scrollDirection = .horizontal
+        layout.minimumLineSpacing = 0
+        layout.minimumInteritemSpacing = 0
+        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        collectionView.backgroundColor = .clear
+        collectionView.layer.cornerRadius = 16
+        collectionView.clipsToBounds = true
+        collectionView.isPagingEnabled = true
+        collectionView.showsHorizontalScrollIndicator = false
+        collectionView.delegate = self
+        collectionView.dataSource = self
+        collectionView.register(ImageCollectionViewCell.self, forCellWithReuseIdentifier: "ImageCollectionViewCell")
+        return collectionView
+    }()
+    
+    private let pageControlBackgroundView = UIView().then {
+        $0.backgroundColor = Colors.Gray.g950.withAlphaComponent(0.5)
+        $0.layer.cornerRadius = 12
+    }
+    
+    private let pageControl = UIPageControl().then {
+        $0.hidesForSinglePage = true
+        $0.pageIndicatorTintColor = Colors.Gray.g400
+        $0.currentPageIndicatorTintColor = Colors.white
+    }
+    
+    private var postImages: [ImageInfo] = []
     
     // Action Buttons
     private let leftActionStackView = UIStackView().then {
@@ -104,9 +140,8 @@ final class FeedPostCell: UITableViewCell {
         $0.contentHorizontalAlignment = .left
     }
     
-    // Date Label
     private let dateLabel = UILabel().then {
-        $0.font = .ieum(UIFont.IeumFont.Text.bodyXSmall) // Caption size?
+        $0.font = .ieum(UIFont.IeumFont.Text.bodyXSmall)
         $0.textColor = Colors.Gray.g400
     }
     
@@ -133,6 +168,9 @@ final class FeedPostCell: UITableViewCell {
         contentView.addSubview(usernameLabel)
         contentView.addSubview(menuButton)
         contentView.addSubview(postImageView)
+        contentView.addSubview(imageCollectionView)
+        contentView.addSubview(pageControlBackgroundView)
+        pageControlBackgroundView.addSubview(pageControl)
         
         contentView.addSubview(leftActionStackView)
         contentView.addSubview(rightActionStackView)
@@ -173,6 +211,23 @@ final class FeedPostCell: UITableViewCell {
             $0.height.equalTo(300)
         }
         
+        imageCollectionView.snp.makeConstraints {
+            $0.top.equalTo(profileImageView.snp.bottom).offset(12)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(300)
+        }
+        
+        pageControlBackgroundView.snp.makeConstraints {
+            $0.centerX.equalTo(imageCollectionView)
+            $0.bottom.equalTo(imageCollectionView).offset(-12)
+            $0.height.equalTo(24)
+        }
+        
+        pageControl.snp.makeConstraints {
+            $0.center.equalToSuperview()
+            $0.leading.trailing.equalToSuperview().inset(8)
+        }
+        
         leftActionStackView.snp.makeConstraints {
             $0.top.equalTo(postImageView.snp.bottom).offset(12)
             $0.leading.equalToSuperview()
@@ -199,13 +254,9 @@ final class FeedPostCell: UITableViewCell {
             $0.width.height.equalTo(24)
         }
         
-        // Content Areas (Initially Hidden or 0 height)
-        // They will be remade in configure()
-        
         seeMoreButton.snp.makeConstraints {
             $0.leading.equalToSuperview()
             $0.height.equalTo(20)
-            // Top/Bottom dynamic
         }
         
         dateLabel.snp.makeConstraints {
@@ -235,8 +286,6 @@ final class FeedPostCell: UITableViewCell {
             $0.alignment = .center
         }
         
-        // Mood Icon & Text
-        // Assuming mood int maps to some assets or text
         let moodText: String
         let moodIconName: String
         
@@ -255,7 +304,7 @@ final class FeedPostCell: UITableViewCell {
         
         let label = UILabel().then {
             $0.text = "오늘의 기분 : \(moodText)"
-            $0.font = .ieum(UIFont.IeumFont.Text.bodySmall) // Bold title-like?
+            $0.font = .ieum(UIFont.IeumFont.Text.bodySmall)
             $0.textColor = Colors.Gray.g950
         }
         
@@ -291,7 +340,7 @@ final class FeedPostCell: UITableViewCell {
         
         let titleLabel = UILabel().then {
             $0.text = item.title
-            $0.font = .ieum(UIFont.IeumFont.Text.bodyM) // Title Font
+            $0.font = .ieum(UIFont.IeumFont.Text.bodyM)
             $0.textColor = Colors.Gray.g950
         }
         
@@ -302,7 +351,6 @@ final class FeedPostCell: UITableViewCell {
             $0.width.height.equalTo(24)
         }
         
-        // Status Badge Logic
         var statusView: UIView?
         
         switch item.type {
@@ -317,7 +365,6 @@ final class FeedPostCell: UITableViewCell {
             let iconName = isTaken ? "checkmark.circle.fill" : "xmark.circle.fill"
             let iconColor = isTaken ? Colors.Green.g500 : Colors.Gray.g400
             let text = isTaken ? "복용 완료" : "미복용"
-            // Text color change to Black for better readability
             let textColor = Colors.Gray.g950 
             
             let sIcon = UIImageView(image: UIImage(systemName: iconName)).then {
@@ -347,12 +394,11 @@ final class FeedPostCell: UITableViewCell {
                 $0.alignment = .center
             }
             
-            // Map amount to asset
             let assetName: String
             switch amount {
-            case .wellEaten, .normal: assetName = "meal-good"
-            case .little: assetName = "meal-small"
-            case .none: assetName = "meal-poor"
+            case .wellEaten: assetName = "meal-good"
+            case .smallAmount: assetName = "meal-small"
+            case .barelyEaten: assetName = "meal-poor"
             }
             
             let sIcon = UIImageView(image: UIImage(named: assetName)).then {
@@ -393,7 +439,6 @@ final class FeedPostCell: UITableViewCell {
         
         container.addSubview(headerStack)
         
-        // Medication might not have content text displayed if it's empty
         let hasContent = !item.content.isEmpty
         if hasContent {
             container.addSubview(contentLabel)
@@ -410,7 +455,7 @@ final class FeedPostCell: UITableViewCell {
             }
         } else {
             headerStack.snp.makeConstraints {
-                $0.bottom.equalToSuperview() // If no content, header is bottom
+                $0.bottom.equalToSuperview()
             }
         }
         
@@ -419,7 +464,11 @@ final class FeedPostCell: UITableViewCell {
     
     // MARK: - Configuration
     
-    func configure(with post: Post) {
+    func configure(with post: Post, isMyPost: Bool = false) {
+        currentPost = post
+        self.isMyPost = isMyPost
+        setupMenu()
+        
         usernameLabel.text = post.userNickname
         isLiked = post.isLiked
         
@@ -438,27 +487,50 @@ final class FeedPostCell: UITableViewCell {
         dateLabel.text = formatter.string(from: date)
         
         // Image
-        if let firstImage = post.images.first {
-            postImageView.image = nil
-            postImageView.backgroundColor = Colors.Gray.g200
-            postImageView.isHidden = false
-            postImageView.snp.remakeConstraints {
+        if let images = post.images, !images.isEmpty {
+            postImages = images
+            postImageView.isHidden = true
+            imageCollectionView.isHidden = false
+            pageControl.numberOfPages = images.count
+            pageControl.currentPage = 0
+            
+            imageCollectionView.reloadData()
+            imageCollectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .left, animated: false)
+            
+            imageCollectionView.snp.remakeConstraints {
                 $0.top.equalTo(profileImageView.snp.bottom).offset(12)
                 $0.leading.trailing.equalToSuperview()
                 $0.height.equalTo(300)
             }
+            
+            pageControlBackgroundView.snp.remakeConstraints {
+                $0.centerX.equalTo(imageCollectionView)
+                $0.bottom.equalTo(imageCollectionView).offset(-12)
+                $0.height.equalTo(24)
+            }
+            
+            pageControl.snp.remakeConstraints {
+                $0.center.equalToSuperview()
+                $0.leading.trailing.equalToSuperview().inset(8)
+            }
+            
+            pageControlBackgroundView.isHidden = images.count <= 1
         } else {
+            postImages = []
             postImageView.isHidden = true
-            postImageView.snp.remakeConstraints {
+            imageCollectionView.isHidden = true
+            pageControlBackgroundView.isHidden = true
+            postImageView.kf.cancelDownloadTask()
+            postImageView.image = nil
+            
+            imageCollectionView.snp.remakeConstraints {
                 $0.top.equalTo(profileImageView.snp.bottom).offset(0)
                 $0.leading.trailing.equalToSuperview()
                 $0.height.equalTo(0)
             }
         }
         
-        // Layout anchor for content
-        let contentTopAnchor = postImageView.isHidden ? profileImageView.snp.bottom : postImageView.snp.bottom
-        // Actually, Actions are below image. Content is below Actions.
+        let contentTopAnchor = imageCollectionView.isHidden ? profileImageView.snp.bottom : imageCollectionView.snp.bottom
         leftActionStackView.snp.remakeConstraints {
             $0.top.equalTo(contentTopAnchor).offset(12)
             $0.leading.equalToSuperview()
@@ -469,8 +541,6 @@ final class FeedPostCell: UITableViewCell {
         }
         
         let actionBottomAnchor = leftActionStackView.snp.bottom
-        
-        // --- Content Logic ---
         
         var showSeeMore = false
         
@@ -486,60 +556,46 @@ final class FeedPostCell: UITableViewCell {
                 $0.trailing.equalToSuperview()
             }
             
-            // Check if text is long
-            // Roughly 80 chars or contains newlines might exceed 3 lines
-            showSeeMore = post.content.count > 80 || post.content.contains("\n")
+            if let content = post.content {
+                showSeeMore = content.count > 80 || content.contains("\n")
+            }
             
-        } else if post.type == .treatment || post.type == .wellness {
-            // Wellness Post
+        } else if post.type == .wellness {
             wellnessContainerView.isHidden = false
             
-            // 1. Mood (Index 0)
-            let moodView = createMoodRow(mood: post.mood)
-            wellnessContainerView.addArrangedSubview(moodView)
+            if let mood = post.mood {
+                let moodView = createMoodRow(mood: mood)
+                wellnessContainerView.addArrangedSubview(moodView)
+            }
             
-            // 2. Items (Index 1...)
             let items = post.displayItems
             for item in items {
                 let itemView = createTreatmentItemView(item: item)
                 wellnessContainerView.addArrangedSubview(itemView)
             }
             
-            // Layout Constraints
             wellnessContainerView.snp.remakeConstraints {
                 $0.top.equalTo(actionBottomAnchor).offset(12)
                 $0.leading.trailing.equalToSuperview()
             }
             
-            // Initial Visibility & See More Logic
-            // Rule: Show Mood (Idx 0) + First Item (Idx 1, max 3 lines).
-            // Hide subsequent items (Idx 2+).
-            // If there are subsequent items OR first item is long -> Show See More.
-            
             if items.count > 1 {
-                // If we have more than 1 item (e.g. Symptoms + Medication), we definitely need See More
-                // because we are hiding the 2nd item onwards.
                 showSeeMore = true
             } else if let firstItemContent = items.first?.content {
-                // If only 1 item, check if it's long
                 if firstItemContent.count > 80 || firstItemContent.contains("\n") {
                     showSeeMore = true
                 }
             }
             
-            // Apply Initial State
             for (index, view) in wellnessContainerView.arrangedSubviews.enumerated() {
                 if index == 0 {
-                    // Mood: Always visible
                     view.isHidden = false
                 } else if index == 1 {
-                    // First Item: Visible, max 3 lines initially
                     view.isHidden = false
                     if let label = view.viewWithTag(100) as? UILabel {
                         label.numberOfLines = 3
                     }
                 } else {
-                    // Subsequent Items: Hidden initially
                     view.isHidden = true
                 }
             }
@@ -564,21 +620,16 @@ final class FeedPostCell: UITableViewCell {
         isExpanded.toggle()
         
         if !dailyContentLabel.isHidden {
-            // Daily Expand
             dailyContentLabel.numberOfLines = isExpanded ? 0 : 3
         } else if !wellnessContainerView.isHidden {
-            // Wellness Expand
-            // Loop through subviews to update visibility and lines
             for (index, view) in wellnessContainerView.arrangedSubviews.enumerated() {
-                if index == 0 { continue } // Mood is always visible
+                if index == 0 { continue }
                 
                 if index == 1 {
-                    // First Item: Toggle lines
                     if let label = view.viewWithTag(100) as? UILabel {
                         label.numberOfLines = isExpanded ? 0 : 3
                     }
                 } else {
-                    // Subsequent Items: Toggle visibility
                     view.isHidden = !isExpanded
                 }
             }
@@ -622,11 +673,117 @@ final class FeedPostCell: UITableViewCell {
     }
     
     @objc private func didTapMenu() {
-        onMenuTapped?()
+    }
+    
+    private func setupMenu() {
+        guard let post = currentPost else { return }
+        
+        if isMyPost {
+            let editAction = UIAction(title: "수정", image: UIImage(systemName: "pencil")) { [weak self] _ in
+                guard let self = self, let post = self.currentPost else { return }
+                self.onEditTapped?(post)
+            }
+            
+            let deleteAction = UIAction(title: "삭제", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+                guard let self = self, let post = self.currentPost else { return }
+                self.onDeleteTapped?(post)
+            }
+            
+            menuButton.menu = UIMenu(title: "", children: [editAction, deleteAction])
+            menuButton.showsMenuAsPrimaryAction = true
+        } else {
+            let reportAction = UIAction(title: "신고하기", image: UIImage(systemName: "exclamationmark.triangle"), attributes: .destructive) { [weak self] _ in
+                guard let self = self, let post = self.currentPost else { return }
+                self.onReportTapped?(post)
+            }
+            
+            menuButton.menu = UIMenu(title: "", children: [reportAction])
+            menuButton.showsMenuAsPrimaryAction = true
+        }
     }
     
     @objc private func didTapSeeMore() {
         toggleExpand()
         onSeeMoreTapped?()
+    }
+}
+
+// MARK: - UICollectionViewDataSource
+
+extension FeedPostCell: UICollectionViewDataSource {
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        return postImages.count
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ImageCollectionViewCell", for: indexPath) as! ImageCollectionViewCell
+        let imageInfo = postImages[indexPath.item]
+        if let imageURL = URL(string: imageInfo.url) {
+            cell.configure(with: imageURL)
+        }
+        return cell
+    }
+}
+
+// MARK: - UICollectionViewDelegateFlowLayout
+
+extension FeedPostCell: UICollectionViewDelegateFlowLayout {
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        return CGSize(width: collectionView.frame.width, height: collectionView.frame.height)
+    }
+    
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        let pageIndex = Int(scrollView.contentOffset.x / scrollView.frame.width)
+        pageControl.currentPage = pageIndex
+    }
+    
+    func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
+        let pageIndex = Int(scrollView.contentOffset.x / scrollView.frame.width)
+        pageControl.currentPage = pageIndex
+    }
+}
+
+// MARK: - ImageCollectionViewCell
+
+private class ImageCollectionViewCell: UICollectionViewCell {
+    private let imageView = UIImageView().then {
+        $0.contentMode = .scaleAspectFill
+        $0.clipsToBounds = true
+        $0.backgroundColor = Colors.Gray.g200
+        $0.layer.cornerRadius = 16
+    }
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        contentView.backgroundColor = .clear
+        setupUI()
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    private func setupUI() {
+        contentView.addSubview(imageView)
+        imageView.snp.makeConstraints {
+            $0.edges.equalToSuperview()
+        }
+    }
+    
+    func configure(with url: URL) {
+        imageView.kf.setImage(
+            with: url,
+            placeholder: nil,
+            options: [
+                .transition(.fade(0.2)),
+                .cacheOriginalImage
+            ]
+        )
+    }
+    
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        imageView.kf.cancelDownloadTask()
+        imageView.image = nil
     }
 }

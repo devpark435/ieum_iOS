@@ -53,7 +53,7 @@ final class FilterChipView: UIView {
     
     var onFilterSelected: ((String) -> Void)?
     
-    private let filterItems = ["전체", "직장암", "대장암", "유방암", "간이식", "기타"]
+    private let filterItems = ["전체", "직장암", "대장암", "간이식", "기타"] // "유방암"은 API에 없어서 제외
     private var chips: [FilterChip] = []
     private var selectedFilter: String = "전체"
     

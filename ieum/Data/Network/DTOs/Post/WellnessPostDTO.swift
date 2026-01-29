@@ -1,59 +1,127 @@
 import Foundation
 
-// MARK: - Request
-struct CreateWellnessPostRequest: Encodable {
-    let data: CreateWellnessPostData
-    // images는 Multipart Form Data로 별도 처리되므로 JSON 인코딩에는 포함하지 않음
-    // API 명세상 data 필드는 JSON String으로 보내야 하므로, 
-    // 실제 전송 시에는 data 객체를 JSON String으로 변환해서 Multipart body에 담아야 함.
-}
+// MARK: - Create Wellness Post Request
 
-struct CreateWellnessPostData: Encodable {
-    let diagnosis: [String]? // 비어있으면 서버에서 사용자 정보 사용
-    let mood: Int // 1~5
+struct CreateWellnessPostData: Codable, Sendable {
+    let diagnosis: [String]?
+    let mood: Int
     let unusualSymptoms: String?
     let medicationTaken: Bool
-    let diet: DietData?
+    let diet: Diet?
     let memo: String?
     let shared: Bool
 }
 
-struct DietData: Encodable {
-    let amountEaten: String // well_eaten, small_amount, barely_eaten
-    let mealContent: String?
+// MARK: - Update Wellness Post Request
+
+struct UpdateWellnessPostData: Codable, Sendable {
+    let diagnosis: [String]?
+    let mood: Int?
+    let unusualSymptoms: String?
+    let medicationTaken: Bool?
+    let diet: Diet?
+    let memo: String?
+    let shared: Bool?
 }
 
-// MARK: - Enums for Mapping
-enum DietAmount: String, Encodable {
-    case wellEaten = "well_eaten"
-    case smallAmount = "small_amount"
-    case barelyEaten = "barely_eaten"
+// MARK: - Create Daily Post Request
+
+struct CreateDailyPostData: Codable, Sendable {
+    let title: String?
+    let content: String
+    let shared: Bool
 }
 
-// MARK: - Response
-struct WellnessPostResponse: Decodable {
+// MARK: - Update Daily Post Request
+
+struct UpdateDailyPostData: Codable, Sendable {
+    let title: String?
+    let content: String?
+    let shared: Bool?
+}
+
+// MARK: - Wellness Post Response
+
+struct WellnessPostResponse: Codable, Sendable {
     let id: Int
-    let type: String
+    let type: PostType
+    let title: String?
+    let content: String?
     let diagnosis: [String]
     let mood: Int
     let unusualSymptoms: String?
     let medicationTaken: Bool
-    let diet: DietResponse?
+    let diet: Diet?
     let memo: String?
-    let images: [ImageResponse]?
+    let images: [ImageInfo]?
     let shared: Bool
+    let likesCount: Int
+    let commentsCount: Int
+    let isLiked: Bool
     let createdAt: Int
     let updatedAt: Int
 }
 
-struct DietResponse: Decodable {
-    let amountEaten: String
-    let mealContent: String?
+// MARK: - Daily Post Response
+
+struct DailyPostResponse: Codable, Sendable {
+    let id: Int
+    let type: PostType
+    let title: String?
+    let content: String
+    let images: [ImageInfo]?
+    let shared: Bool
+    let likesCount: Int
+    let commentsCount: Int
+    let isLiked: Bool
+    let createdAt: Int
+    let updatedAt: Int
 }
 
-struct ImageResponse: Decodable {
-    let url: String
-    let filename: String?
-    let uploadedAt: Int
+// MARK: - Like Response
+
+struct LikeResponse: Codable, Sendable {
+    let postId: Int
+    let postType: PostType
+    let likesCount: Int
+    let isLiked: Bool
+    let createdAt: Int
 }
 
+// MARK: - Create Comment Request
+
+struct CreateCommentRequest: Codable, Sendable {
+    let content: String
+    let parentId: Int?
+}
+
+// MARK: - Update Comment Request
+
+struct UpdateCommentRequest: Codable, Sendable {
+    let content: String
+}
+
+// MARK: - Create Comment Response
+
+struct CreateCommentResponse: Codable, Sendable {
+    let id: Int
+    let postType: PostType
+    let postId: Int
+    let userId: Int
+    let nickname: String
+    let content: String
+    let parentId: Int?
+    let createdAt: Int
+    let updatedAt: Int
+}
+
+// MARK: - Comment Like Response
+
+struct CommentLikeResponse: Codable, Sendable {
+    let commentId: Int
+    let postType: PostType
+    let postId: Int
+    let likesCount: Int
+    let isLiked: Bool
+    let createdAt: Int
+}

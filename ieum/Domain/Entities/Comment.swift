@@ -1,6 +1,6 @@
 import Foundation
 
-struct Comment: Codable {
+struct Comment: Codable, Sendable {
     let id: Int
     let userId: Int
     let nickname: String
@@ -10,7 +10,10 @@ struct Comment: Codable {
     let updatedAt: Int
 }
 
-struct Reply: Codable {
+// API 명세의 CommentWithReplies와 동일하므로 typealias 추가
+typealias CommentWithReplies = Comment
+
+struct Reply: Codable, Sendable {
     let id: Int
     let userId: Int
     let nickname: String
@@ -19,4 +22,3 @@ struct Reply: Codable {
     let createdAt: Int
     let updatedAt: Int
 }
-
