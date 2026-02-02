@@ -12,10 +12,6 @@ final class MyPostsViewController: UIViewController {
     
     // MARK: - UI Components
     
-    private let filterChipView = FilterChipView().then {
-        $0.backgroundColor = Colors.white
-    }
-    
     private let tableView = UITableView().then {
         $0.backgroundColor = Colors.white
         $0.separatorStyle = .none
@@ -57,21 +53,13 @@ final class MyPostsViewController: UIViewController {
     // MARK: - Setup
     
     private func setupUI() {
-        view.addSubview(filterChipView)
         view.addSubview(tableView)
         view.addSubview(loadingIndicator)
     }
     
     private func setupLayout() {
-        filterChipView.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(16)
-            $0.leading.equalToSuperview().inset(20)
-            $0.trailing.equalToSuperview()
-            $0.height.equalTo(32)
-        }
-        
         tableView.snp.makeConstraints {
-            $0.top.equalTo(filterChipView.snp.bottom).offset(16)
+            $0.top.equalToSuperview().offset(16)
             $0.leading.trailing.equalToSuperview().inset(20)
             $0.bottom.equalToSuperview()
         }
@@ -88,10 +76,6 @@ final class MyPostsViewController: UIViewController {
     }
     
     private func bindViewModel() {
-        filterChipView.onFilterSelected = { [weak self] filter in
-            self?.viewModel.didSelectFilter.send(filter)
-        }
-        
         viewModel.$posts
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in

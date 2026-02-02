@@ -5,6 +5,11 @@ protocol MyPageCoordinatorDelegate: AnyObject {
     // 마이페이지 흐름 종료 시 (필요 시)
 }
 
+// 로그아웃/회원탈퇴 시 로그인 화면 전환을 위한 Notification
+extension Notification.Name {
+    static let userDidLogout = Notification.Name("userDidLogout")
+}
+
 final class MyPageCoordinator: Coordinator {
     var childCoordinators: [Coordinator] = []
     var navigationController: UINavigationController
@@ -12,6 +17,7 @@ final class MyPageCoordinator: Coordinator {
     weak var delegate: MyPageCoordinatorDelegate?
     private weak var viewModel: MyPageViewModel?
     private var cancellables = Set<AnyCancellable>()
+    private let authRepository: AuthRepository = AuthRepositoryImpl()
     
     init(navigationController: UINavigationController) {
         self.navigationController = navigationController
@@ -253,5 +259,49 @@ final class MyPageCoordinator: Coordinator {
         )
         editVC.hidesBottomBarWhenPushed = true
         navigationController.pushViewController(editVC, animated: true)
+    }
+    
+    // MARK: - Settings
+    
+    func showSettings() {
+        let settingsVC = SettingsViewController()
+        settingsVC.delegate = self
+        settingsVC.hidesBottomBarWhenPushed = true
+        navigationController.pushViewController(settingsVC, animated: true)
+    }
+}
+
+// MARK: - SettingsViewControllerDelegate
+
+extension MyPageCoordinator: SettingsViewControllerDelegate {
+    func didTapPrivacyPolicy() {
+        let privacyVC = PrivacyPolicyViewController()
+        privacyVC.hidesBottomBarWhenPushed = true
+        navigationController.pushViewController(privacyVC, animated: true)
+    }
+    
+    func didTapDeleteAccount() {
+        authRepository.deleteAccount()
+            .receive(on: DispatchQueue.main)
+            .sink { completion in
+                if case .failure(let error) = completion {
+                    print("Delete account error: \(error)")
+                }
+            } receiveValue: { [weak self] _ in
+                self?.handleLogout()
+            }
+            .store(in: &cancellables)
+    }
+    
+    func didTapLogout() {
+        handleLogout()
+    }
+    
+    private func handleLogout() {
+        // 토큰 삭제
+        TokenManager.shared.clearTokens()
+        
+        // 로그인 화면으로 전환 알림
+        NotificationCenter.default.post(name: .userDidLogout, object: nil)
     }
 }

@@ -24,12 +24,34 @@ final class AppCoordinator: Coordinator {
         window.rootViewController = navigationController
         window.makeKeyAndVisible()
         
+        // 로그아웃 알림 관찰
+        observeLogout()
+        
         // 개발 모드인 경우 바로 메인 화면으로 이동
         if isDevelopmentMode {
             showMain()
         } else {
             showSplash()
         }
+    }
+    
+    private func observeLogout() {
+        NotificationCenter.default.publisher(for: .userDidLogout)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.handleLogout()
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func handleLogout() {
+        // 네비게이션 스택 초기화
+        navigationController = UINavigationController()
+        window.rootViewController = navigationController
+        childCoordinators.removeAll()
+        
+        // 로그인 화면으로 이동
+        showAuth()
     }
     
     private func showSplash() {
