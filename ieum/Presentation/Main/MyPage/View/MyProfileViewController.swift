@@ -104,13 +104,19 @@ final class MyProfileViewController: UIViewController {
         addInfoSection(title: "진단명", content: diagnosesText, isVisible: profile.diagnosesVisible, sectionType: .diagnosis)
         
         // Surgery
-        addInfoSection(title: "수술 이력", content: "수술 이력이 있다면 기록해 주세요", isVisible: profile.surgeryVisible, isPlaceholder: profile.surgery?.isEmpty ?? true, sectionType: .surgery)
+        let surgeryContent = formatSurgeryHistory(profile.surgery)
+        let surgeryIsPlaceholder = profile.surgery?.isEmpty ?? true
+        addInfoSection(title: "수술 이력", content: surgeryContent, isVisible: profile.surgeryVisible, isPlaceholder: surgeryIsPlaceholder, sectionType: .surgery)
         
         // Chemotherapy
-        addInfoSection(title: "항암 이력", content: "항암 이력이 있다면 기록해 주세요", isVisible: profile.chemotherapyVisible, isPlaceholder: profile.chemotherapy?.isEmpty ?? true, sectionType: .chemotherapy)
+        let chemotherapyContent = formatChemotherapyHistory(profile.chemotherapy)
+        let chemotherapyIsPlaceholder = profile.chemotherapy?.isEmpty ?? true
+        addInfoSection(title: "항암 이력", content: chemotherapyContent, isVisible: profile.chemotherapyVisible, isPlaceholder: chemotherapyIsPlaceholder, sectionType: .chemotherapy)
         
         // Radiation
-        addInfoSection(title: "방사선 이력", content: "방사선 이력이 있다면 기록해 주세요", isVisible: profile.radiationTherapyVisible, isPlaceholder: profile.radiationTherapy?.isEmpty ?? true, sectionType: .radiation)
+        let radiationContent = formatRadiationHistory(profile.radiationTherapy)
+        let radiationIsPlaceholder = profile.radiationTherapy?.isEmpty ?? true
+        addInfoSection(title: "방사선 이력", content: radiationContent, isVisible: profile.radiationTherapyVisible, isPlaceholder: radiationIsPlaceholder, sectionType: .radiation)
         
         // Age Group
         let ageGroupText = AgeGroup(rawValue: profile.ageGroup ?? "")?.title ?? ""
@@ -125,6 +131,40 @@ final class MyProfileViewController: UIViewController {
             regionText += "이용중 병원 : \(hospital)"
         }
         addInfoSection(title: "지역", content: regionText, isVisible: profile.residenceAreaVisible || profile.hospitalAreaVisible, sectionType: .residence)
+    }
+    
+    // MARK: - History Formatting
+    
+    private func formatSurgeryHistory(_ surgeries: [Surgery]?) -> String {
+        guard let surgeries = surgeries, !surgeries.isEmpty else {
+            return "수술 이력이 있다면 기록해 주세요"
+        }
+        
+        return surgeries.map { surgery in
+            "\(surgery.date): \(surgery.description)"
+        }.joined(separator: "\n")
+    }
+    
+    private func formatChemotherapyHistory(_ chemotherapies: [Chemotherapy]?) -> String {
+        guard let chemotherapies = chemotherapies, !chemotherapies.isEmpty else {
+            return "항암 이력이 있다면 기록해 주세요"
+        }
+        
+        return chemotherapies.map { chemo in
+            let endDateText = chemo.endDate ?? "진행중"
+            return "\(chemo.cycle)차 (\(chemo.startDate) ~ \(endDateText))"
+        }.joined(separator: "\n")
+    }
+    
+    private func formatRadiationHistory(_ radiations: [RadiationTherapy]?) -> String {
+        guard let radiations = radiations, !radiations.isEmpty else {
+            return "방사선 이력이 있다면 기록해 주세요"
+        }
+        
+        return radiations.map { radiation in
+            let endDateText = radiation.endDate ?? "진행중"
+            return "\(radiation.startDate) ~ \(endDateText)"
+        }.joined(separator: "\n")
     }
     
     private func addInfoSection(title: String, content: String, isVisible: Bool, isPlaceholder: Bool = false, sectionType: InfoSectionType) {
@@ -218,10 +258,9 @@ final class ProfileInfoSectionView: UIView {
         $0.textColor = Colors.Gray.g950
     }
     
-    private let visibilityBadge = UILabel().then {
-        $0.font = .ieum(UIFont.IeumFont.Text.bodyXSmall)
-        $0.textColor = Colors.Gray.g400
-        $0.text = "🔒 비공개"
+    private let visibilityBadge = UIImageView().then {
+        $0.contentMode = .scaleAspectFit
+        $0.tintColor = Colors.Gray.g400
     }
     
     private let arrowImageView = UIImageView().then {
@@ -285,6 +324,7 @@ final class ProfileInfoSectionView: UIView {
         visibilityBadge.snp.makeConstraints {
             $0.centerY.equalTo(titleLabel)
             $0.leading.equalTo(titleLabel.snp.trailing).offset(8)
+            $0.width.height.equalTo(16)
         }
         
         arrowImageView.snp.makeConstraints {
@@ -313,6 +353,13 @@ final class ProfileInfoSectionView: UIView {
     func configure(content: String, isVisible: Bool, isPlaceholder: Bool) {
         contentLabel.text = content
         contentLabel.textColor = isPlaceholder ? Colors.Gray.g400 : Colors.Gray.g800
-        visibilityBadge.isHidden = isVisible
+        
+        // 비공개면 닫힌 자물쇠, 공개면 숨김
+        if isVisible {
+            visibilityBadge.isHidden = true
+        } else {
+            visibilityBadge.isHidden = false
+            visibilityBadge.image = UIImage(systemName: "lock.fill")
+        }
     }
 }

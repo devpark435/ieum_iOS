@@ -142,14 +142,116 @@ final class MyPageCoordinator: Coordinator {
     }
     
     func showEditSurgery(profile: UserProfile) {
-        // TODO: 수술 이력 수정 UI 구현 필요
+        let editVC = SurgeryHistoryViewController(
+            initialSurgeries: profile.surgery,
+            onComplete: { [weak self] surgeries, isPrivate in
+                guard let self = self, let viewModel = self.viewModel else { return }
+                let request = viewModel.createUpdateRequest(
+                    from: profile,
+                    updatingSurgery: surgeries.isEmpty ? [] : surgeries
+                )
+                let updatedRequest = UpdateProfileRequest(
+                    diagnoses: request.diagnoses,
+                    surgery: surgeries.isEmpty ? [] : surgeries,
+                    chemotherapy: request.chemotherapy,
+                    radiationTherapy: request.radiationTherapy,
+                    ageGroup: request.ageGroup,
+                    residenceArea: request.residenceArea,
+                    hospitalArea: request.hospitalArea,
+                    sexVisible: request.sexVisible,
+                    diagnosesVisible: request.diagnosesVisible,
+                    surgeryVisible: isPrivate ? false : request.surgeryVisible,
+                    chemotherapyVisible: request.chemotherapyVisible,
+                    radiationTherapyVisible: request.radiationTherapyVisible,
+                    ageGroupVisible: request.ageGroupVisible,
+                    residenceAreaVisible: request.residenceAreaVisible,
+                    hospitalAreaVisible: request.hospitalAreaVisible
+                )
+                viewModel.updateProfile(updatedRequest)
+                    .sink(
+                        receiveCompletion: { _ in },
+                        receiveValue: { _ in }
+                    )
+                    .store(in: &self.cancellables)
+            }
+        )
+        editVC.hidesBottomBarWhenPushed = true
+        navigationController.pushViewController(editVC, animated: true)
     }
     
     func showEditChemotherapy(profile: UserProfile) {
-        // TODO: 항암 이력 수정 UI 구현 필요
+        let editVC = ChemotherapyHistoryViewController(
+            initialChemotherapies: profile.chemotherapy,
+            onComplete: { [weak self] chemotherapies, isPrivate in
+                guard let self = self, let viewModel = self.viewModel else { return }
+                let request = viewModel.createUpdateRequest(
+                    from: profile,
+                    updatingChemotherapy: chemotherapies.isEmpty ? [] : chemotherapies
+                )
+                let updatedRequest = UpdateProfileRequest(
+                    diagnoses: request.diagnoses,
+                    surgery: request.surgery,
+                    chemotherapy: chemotherapies.isEmpty ? [] : chemotherapies,
+                    radiationTherapy: request.radiationTherapy,
+                    ageGroup: request.ageGroup,
+                    residenceArea: request.residenceArea,
+                    hospitalArea: request.hospitalArea,
+                    sexVisible: request.sexVisible,
+                    diagnosesVisible: request.diagnosesVisible,
+                    surgeryVisible: request.surgeryVisible,
+                    chemotherapyVisible: isPrivate ? false : request.chemotherapyVisible,
+                    radiationTherapyVisible: request.radiationTherapyVisible,
+                    ageGroupVisible: request.ageGroupVisible,
+                    residenceAreaVisible: request.residenceAreaVisible,
+                    hospitalAreaVisible: request.hospitalAreaVisible
+                )
+                viewModel.updateProfile(updatedRequest)
+                    .sink(
+                        receiveCompletion: { _ in },
+                        receiveValue: { _ in }
+                    )
+                    .store(in: &self.cancellables)
+            }
+        )
+        editVC.hidesBottomBarWhenPushed = true
+        navigationController.pushViewController(editVC, animated: true)
     }
     
     func showEditRadiation(profile: UserProfile) {
-        // TODO: 방사선 이력 수정 UI 구현 필요
+        let editVC = RadiationHistoryViewController(
+            initialRadiations: profile.radiationTherapy,
+            onComplete: { [weak self] radiations, isPrivate in
+                guard let self = self, let viewModel = self.viewModel else { return }
+                let request = viewModel.createUpdateRequest(
+                    from: profile,
+                    updatingRadiationTherapy: radiations.isEmpty ? [] : radiations
+                )
+                let updatedRequest = UpdateProfileRequest(
+                    diagnoses: request.diagnoses,
+                    surgery: request.surgery,
+                    chemotherapy: request.chemotherapy,
+                    radiationTherapy: radiations.isEmpty ? [] : radiations,
+                    ageGroup: request.ageGroup,
+                    residenceArea: request.residenceArea,
+                    hospitalArea: request.hospitalArea,
+                    sexVisible: request.sexVisible,
+                    diagnosesVisible: request.diagnosesVisible,
+                    surgeryVisible: request.surgeryVisible,
+                    chemotherapyVisible: request.chemotherapyVisible,
+                    radiationTherapyVisible: isPrivate ? false : request.radiationTherapyVisible,
+                    ageGroupVisible: request.ageGroupVisible,
+                    residenceAreaVisible: request.residenceAreaVisible,
+                    hospitalAreaVisible: request.hospitalAreaVisible
+                )
+                viewModel.updateProfile(updatedRequest)
+                    .sink(
+                        receiveCompletion: { _ in },
+                        receiveValue: { _ in }
+                    )
+                    .store(in: &self.cancellables)
+            }
+        )
+        editVC.hidesBottomBarWhenPushed = true
+        navigationController.pushViewController(editVC, animated: true)
     }
 }
