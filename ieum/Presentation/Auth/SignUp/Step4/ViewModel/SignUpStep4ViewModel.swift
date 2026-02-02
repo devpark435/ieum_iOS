@@ -63,7 +63,7 @@ final class SignUpStep4ViewModel: ObservableObject {
         updateState()
     }
     
-    private func updateState() {
+    func updateState() {
         let count = selectedDiagnosis.count
         selectedCount = count
         

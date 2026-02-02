@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import OSLog
 
 final class MyPostsViewModel: ObservableObject {
     
@@ -11,6 +12,7 @@ final class MyPostsViewModel: ObservableObject {
     // MARK: - Outputs
     @Published private(set) var posts: [Post] = []
     @Published private(set) var isLoading = false
+    @Published private(set) var isLoadingMore = false
     @Published private(set) var currentFilter: String = "전체"
     @Published private(set) var error: Error?
     
@@ -18,8 +20,8 @@ final class MyPostsViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     
     private var currentPage = 1
-    private let pageSize = 10
-    private var isLastPage = false
+    private let pageSize = 20
+    private var hasMorePages = true
     
     // MARK: - Initializer
     
@@ -44,7 +46,7 @@ final class MyPostsViewModel: ObservableObject {
             
         loadMore
             .sink { [weak self] in
-                self?.loadNextPage()
+                self?.loadMorePosts()
             }
             .store(in: &cancellables)
     }
@@ -53,55 +55,67 @@ final class MyPostsViewModel: ObservableObject {
     
     private func refresh() {
         currentPage = 1
-        isLastPage = false
+        hasMorePages = true
         posts = []
-        fetchMyPosts()
+        fetchMyPosts(isInitialLoad: true)
     }
     
-    private func loadNextPage() {
-        guard !isLoading, !isLastPage else { return }
+    func loadMorePosts() {
+        guard hasMorePages && !isLoadingMore && !isLoading else { return }
         currentPage += 1
-        fetchMyPosts()
+        fetchMyPosts(isInitialLoad: false)
     }
     
-    private func fetchMyPosts() {
-        isLoading = true
+    private func fetchMyPosts(isInitialLoad: Bool = false) {
+        if isInitialLoad {
+            isLoading = true
+        } else {
+            isLoadingMore = true
+        }
         
-        let type = convertFilterToPostType(currentFilter)
+        let type = convertFilterToType(currentFilter)
         
-        feedRepository.fetchPosts(type: type, page: currentPage, pageSize: pageSize, diagnosis: nil, mood: nil)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] completion in
-                self?.isLoading = false
-                if case .failure(let error) = completion {
-                    self?.error = error
-                }
-            } receiveValue: { [weak self] response in
-                guard let self = self else { return }
-                
-                // TODO: 서버에서 현재 사용자의 게시글만 필터링해서 반환하는 API가 있다면 사용
-                // 현재는 모든 공유된 포스트를 받아오므로, 클라이언트에서 필터링 필요
-                // 또는 별도의 내 게시글 조회 API 추가 필요
-                
-                if self.currentPage == 1 {
-                    self.posts = response.posts
-                } else {
-                    self.posts.append(contentsOf: response.posts)
-                }
-                
-                self.isLastPage = self.currentPage >= response.pagination.totalPages
+        feedRepository.fetchMyPosts(
+            type: type,
+            page: currentPage,
+            pageSize: pageSize,
+            sort: "createdAt",
+            order: "desc",
+            diagnosis: nil,
+            fromDate: nil,
+            toDate: nil
+        )
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] completion in
+            self?.isLoading = false
+            self?.isLoadingMore = false
+            if case .failure(let error) = completion {
+                self?.error = error
+                Logger.network.error("내가 쓴 글 조회 실패: \(error.localizedDescription)")
             }
-            .store(in: &cancellables)
+        } receiveValue: { [weak self] response in
+            guard let self = self else { return }
+            
+            if isInitialLoad {
+                self.posts = response.posts
+            } else {
+                self.posts.append(contentsOf: response.posts)
+            }
+            
+            self.hasMorePages = response.pagination.currentPage < response.pagination.totalPages
+            self.currentPage = response.pagination.currentPage
+        }
+        .store(in: &cancellables)
     }
     
     // MARK: - Helpers
     
-    private func convertFilterToPostType(_ filter: String) -> PostType {
+    private func convertFilterToType(_ filter: String) -> String? {
         switch filter {
-        case "전체": return .all
-        case "일상 기록": return .daily
-        case "치료 기록": return .wellness
-        default: return .all
+        case "전체": return "all"
+        case "일상 기록": return "daily"
+        case "치료 기록": return "wellness"
+        default: return "all"
         }
     }
 }

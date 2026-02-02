@@ -52,8 +52,9 @@ final class MyPageMainViewController: UIViewController {
     
     private let tabStackView = UIStackView().then {
         $0.axis = .horizontal
-        $0.distribution = .fillEqually
-        $0.alignment = .fill
+        $0.distribution = .fill
+        $0.alignment = .center
+        $0.spacing = 24
     }
     
     private let profileTabButton = UIButton().then {
@@ -68,6 +69,11 @@ final class MyPageMainViewController: UIViewController {
         $0.titleLabel?.font = .ieum(UIFont.IeumFont.Text.bodyM)
         $0.setTitleColor(Colors.Slate.s900, for: .selected)
         $0.setTitleColor(Colors.Gray.g400, for: .normal)
+    }
+    
+    private let settingsButton = UIButton().then {
+        $0.setImage(UIImage(systemName: "gearshape"), for: .normal)
+        $0.tintColor = Colors.Gray.g950
     }
     
     private let indicatorView = UIView().then {
@@ -113,6 +119,7 @@ final class MyPageMainViewController: UIViewController {
     private func setupUI() {
         view.addSubview(headerView)
         headerView.addSubview(tabStackView)
+        headerView.addSubview(settingsButton)
         headerView.addSubview(indicatorView)
         
         tabStackView.addArrangedSubview(profileTabButton)
@@ -129,15 +136,22 @@ final class MyPageMainViewController: UIViewController {
         }
         
         tabStackView.snp.makeConstraints {
-            $0.edges.equalToSuperview()
+            $0.leading.equalToSuperview().offset(20)
+            $0.centerY.equalToSuperview()
         }
         
-        // Indicator width is half of screen width (since 2 tabs)
+        settingsButton.snp.makeConstraints {
+            $0.trailing.equalToSuperview().inset(20)
+            $0.centerY.equalToSuperview()
+            $0.width.height.equalTo(24)
+        }
+        
+        // Indicator will be positioned under selected tab button
         indicatorView.snp.makeConstraints {
             $0.bottom.equalToSuperview()
             $0.height.equalTo(2)
-            $0.width.equalToSuperview().multipliedBy(0.5)
-            $0.leading.equalToSuperview() // Initial leading
+            $0.leading.equalTo(profileTabButton)
+            $0.width.equalTo(profileTabButton)
         }
         
         containerView.snp.makeConstraints {
@@ -149,6 +163,7 @@ final class MyPageMainViewController: UIViewController {
     private func setupActions() {
         profileTabButton.addTarget(self, action: #selector(didTapProfileTab), for: .touchUpInside)
         postsTabButton.addTarget(self, action: #selector(didTapPostsTab), for: .touchUpInside)
+        settingsButton.addTarget(self, action: #selector(didTapSettings), for: .touchUpInside)
     }
     
     // MARK: - Tab Handling
@@ -161,6 +176,10 @@ final class MyPageMainViewController: UIViewController {
         currentTab = .posts
     }
     
+    @objc private func didTapSettings() {
+        coordinator?.showSettings()
+    }
+    
     private func updateTabUI() {
         let isProfile = currentTab == .profile
         profileTabButton.isSelected = isProfile
@@ -169,11 +188,14 @@ final class MyPageMainViewController: UIViewController {
         profileTabButton.titleLabel?.font = isProfile ? .ieum(UIFont.IeumFont.Heading.h4) : .ieum(UIFont.IeumFont.Text.bodyM)
         postsTabButton.titleLabel?.font = !isProfile ? .ieum(UIFont.IeumFont.Heading.h4) : .ieum(UIFont.IeumFont.Text.bodyM)
         
-        // Animate Indicator
-        let offset = isProfile ? 0 : view.frame.width / 2
+        // Animate Indicator to selected tab
+        let selectedButton = isProfile ? profileTabButton : postsTabButton
         
-        indicatorView.snp.updateConstraints {
-            $0.leading.equalToSuperview().offset(offset)
+        indicatorView.snp.remakeConstraints {
+            $0.bottom.equalToSuperview()
+            $0.height.equalTo(2)
+            $0.leading.equalTo(selectedButton)
+            $0.width.equalTo(selectedButton)
         }
         
         UIView.animate(withDuration: 0.3) {
