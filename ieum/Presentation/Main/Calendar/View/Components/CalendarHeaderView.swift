@@ -56,7 +56,7 @@ final class CalendarHeaderView: UIView {
     // MARK: - Setup
     
     private func setupUI() {
-        backgroundColor = Colors.white
+        backgroundColor = Colors.Slate.s100
         
         addSubview(monthButton)
         addSubview(chevronImageView)

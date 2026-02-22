@@ -11,10 +11,27 @@ final class CalendarStatsView: UIView {
         $0.layer.cornerRadius = 16
     }
     
+    private let statsStackView = UIStackView().then {
+        $0.axis = .horizontal
+        $0.spacing = 8
+        $0.alignment = .center
+    }
+    
     private let statsLabel = UILabel().then {
         $0.font = .ieum(UIFont.IeumFont.Text.bodyM)
         $0.textColor = Colors.Gray.g800
-        $0.numberOfLines = 2
+        $0.numberOfLines = 0
+    }
+    
+    private let percentageChip = UIView().then {
+        $0.backgroundColor = Colors.Lime.l100
+        $0.layer.cornerRadius = 12
+    }
+    
+    private let percentageLabel = UILabel().then {
+        $0.font = .ieum(UIFont.IeumFont.Text.bodySmall)
+        $0.textColor = Colors.Primary.green
+        $0.textAlignment = .center
     }
     
     private let emojiImageView = UIImageView().then {
@@ -25,7 +42,7 @@ final class CalendarStatsView: UIView {
     private let descriptionLabel = UILabel().then {
         $0.font = .ieum(UIFont.IeumFont.Text.bodySmall)
         $0.textColor = Colors.Gray.g600
-        $0.numberOfLines = 2
+        $0.numberOfLines = 0
     }
     
     // MARK: - Initializer
@@ -44,9 +61,14 @@ final class CalendarStatsView: UIView {
     
     private func setupUI() {
         addSubview(containerView)
-        containerView.addSubview(statsLabel)
+        containerView.addSubview(statsStackView)
         containerView.addSubview(emojiImageView)
         containerView.addSubview(descriptionLabel)
+        
+        statsStackView.addArrangedSubview(statsLabel)
+        statsStackView.addArrangedSubview(percentageChip)
+        
+        percentageChip.addSubview(percentageLabel)
     }
     
     private func setupLayout() {
@@ -60,17 +82,25 @@ final class CalendarStatsView: UIView {
             $0.width.height.equalTo(48)
         }
         
-        statsLabel.snp.makeConstraints {
+        statsStackView.snp.makeConstraints {
             $0.leading.equalToSuperview().offset(20)
-            $0.top.equalToSuperview().offset(16)
-            $0.trailing.equalTo(emojiImageView.snp.leading).offset(-16)
+            $0.top.equalToSuperview().offset(20)
+            $0.trailing.lessThanOrEqualTo(emojiImageView.snp.leading).offset(-16)
+        }
+        
+        percentageChip.snp.makeConstraints {
+            $0.height.equalTo(24)
+        }
+        
+        percentageLabel.snp.makeConstraints {
+            $0.edges.equalToSuperview().inset(UIEdgeInsets(top: 4, left: 10, bottom: 4, right: 10))
         }
         
         descriptionLabel.snp.makeConstraints {
             $0.leading.equalToSuperview().offset(20)
-            $0.top.equalTo(statsLabel.snp.bottom).offset(8)
+            $0.top.equalTo(statsStackView.snp.bottom).offset(8)
             $0.trailing.equalTo(emojiImageView.snp.leading).offset(-16)
-            $0.bottom.equalToSuperview().inset(16)
+            $0.bottom.lessThanOrEqualToSuperview().inset(20)
         }
     }
     
@@ -91,8 +121,11 @@ final class CalendarStatsView: UIView {
         
         statsLabel.attributedText = attributedString
         
+        // 퍼센트 계산 및 표시 (소수점 제외)
+        let percentage = totalDays > 0 ? Int((Float(recordedDays) / Float(totalDays)) * 100) : 0
+        percentageLabel.text = "\(percentage)%"
+        
         // 설명 텍스트 업데이트
-        let filterName = selectedFilter?.title ?? "기록"
         descriptionLabel.text = "내 몸의 흐름을 조금씩 기록하고 있어요.\n이 기록이 회복의 리듬이 될 거예요."
         
         // 이모지 업데이트 (필터에 따라)

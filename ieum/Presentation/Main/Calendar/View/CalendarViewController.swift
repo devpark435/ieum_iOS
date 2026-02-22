@@ -14,11 +14,11 @@ final class CalendarViewController: UIViewController {
     
     private let scrollView = UIScrollView().then {
         $0.showsVerticalScrollIndicator = false
-        $0.backgroundColor = Colors.white
+        $0.backgroundColor = Colors.Slate.s100
     }
     
     private let contentView = UIView().then {
-        $0.backgroundColor = Colors.white
+        $0.backgroundColor = Colors.Slate.s100
     }
     
     private let headerView = CalendarHeaderView()
@@ -31,7 +31,7 @@ final class CalendarViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = Colors.white
+        view.backgroundColor = Colors.Slate.s100
         
         setupUI()
         setupLayout()
@@ -82,7 +82,7 @@ final class CalendarViewController: UIViewController {
             $0.top.equalTo(calendarGridView.snp.bottom).offset(16)
             $0.leading.trailing.equalToSuperview()
             $0.bottom.equalToSuperview().inset(20)
-            $0.height.equalTo(120)
+            $0.height.greaterThanOrEqualTo(140)
         }
     }
     
@@ -189,11 +189,22 @@ private class MonthPickerViewController: UIViewController {
     
     var onDateSelected: ((Date) -> Void)?
     
-    private let datePicker = UIDatePicker().then {
-        $0.datePickerMode = .date
-        $0.preferredDatePickerStyle = .wheels
-        $0.locale = Locale(identifier: "ko_KR")
-    }
+    // MARK: - Properties
+    
+    private var selectedYear: Int
+    private var selectedMonth: Int
+    
+    // 년도 범위: 2020 ~ 현재년도 + 5
+    private let years: [Int] = {
+        let currentYear = Calendar.current.component(.year, from: Date())
+        return Array(2020...(currentYear + 5))
+    }()
+    
+    private let months: [Int] = Array(1...12)
+    
+    // MARK: - UI Components
+    
+    private let pickerView = UIPickerView()
     
     private let confirmButton = UIButton().then {
         $0.setTitle("선택", for: .normal)
@@ -210,45 +221,122 @@ private class MonthPickerViewController: UIViewController {
         $0.textAlignment = .center
     }
     
+    // MARK: - Initializer
+    
     init(selectedDate: Date) {
+        let calendar = Calendar.current
+        self.selectedYear = calendar.component(.year, from: selectedDate)
+        self.selectedMonth = calendar.component(.month, from: selectedDate)
         super.init(nibName: nil, bundle: nil)
-        datePicker.date = selectedDate
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
+    // MARK: - Life Cycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = Colors.white
         
+        setupUI()
+        setupLayout()
+        setupPickerView()
+    }
+    
+    // MARK: - Setup
+    
+    private func setupUI() {
         view.addSubview(titleLabel)
-        view.addSubview(datePicker)
+        view.addSubview(pickerView)
         view.addSubview(confirmButton)
         
+        confirmButton.addTarget(self, action: #selector(didTapConfirm), for: .touchUpInside)
+    }
+    
+    private func setupLayout() {
         titleLabel.snp.makeConstraints {
             $0.top.equalToSuperview().offset(20)
             $0.centerX.equalToSuperview()
         }
         
-        datePicker.snp.makeConstraints {
+        pickerView.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(16)
             $0.leading.trailing.equalToSuperview().inset(20)
+            $0.height.equalTo(200)
         }
         
         confirmButton.snp.makeConstraints {
-            $0.top.equalTo(datePicker.snp.bottom).offset(16)
+            $0.top.equalTo(pickerView.snp.bottom).offset(16)
             $0.leading.trailing.equalToSuperview().inset(20)
             $0.height.equalTo(56)
             $0.bottom.lessThanOrEqualTo(view.safeAreaLayoutGuide).inset(20)
         }
-        
-        confirmButton.addTarget(self, action: #selector(didTapConfirm), for: .touchUpInside)
     }
     
+    private func setupPickerView() {
+        pickerView.delegate = self
+        pickerView.dataSource = self
+        
+        // 현재 선택된 년/월로 스크롤
+        if let yearIndex = years.firstIndex(of: selectedYear) {
+            pickerView.selectRow(yearIndex, inComponent: 0, animated: false)
+        }
+        pickerView.selectRow(selectedMonth - 1, inComponent: 1, animated: false)
+    }
+    
+    // MARK: - Actions
+    
     @objc private func didTapConfirm() {
-        onDateSelected?(datePicker.date)
+        var components = DateComponents()
+        components.year = selectedYear
+        components.month = selectedMonth
+        components.day = 1
+        
+        if let date = Calendar.current.date(from: components) {
+            onDateSelected?(date)
+        }
         dismiss(animated: true)
+    }
+}
+
+// MARK: - UIPickerViewDataSource
+
+extension MonthPickerViewController: UIPickerViewDataSource {
+    func numberOfComponents(in pickerView: UIPickerView) -> Int {
+        return 2 // 년도, 월
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+        switch component {
+        case 0: return years.count
+        case 1: return months.count
+        default: return 0
+        }
+    }
+}
+
+// MARK: - UIPickerViewDelegate
+
+extension MonthPickerViewController: UIPickerViewDelegate {
+    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
+        switch component {
+        case 0: return "\(years[row])년"
+        case 1: return "\(months[row])월"
+        default: return nil
+        }
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
+        switch component {
+        case 0: selectedYear = years[row]
+        case 1: selectedMonth = months[row]
+        default: break
+        }
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, widthForComponent component: Int) -> CGFloat {
+        return 100
     }
 }

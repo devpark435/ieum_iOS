@@ -66,21 +66,23 @@ final class CalendarDayCell: UICollectionViewCell {
             $0.edges.equalToSuperview().inset(2)
         }
         
-        // 오늘 원형 배경 (날짜 숫자 뒤에 배치)
+        // 오늘 원형 배경 (우상단 정렬)
         todayCircleView.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(4)
-            $0.centerX.equalToSuperview()
+            $0.top.equalToSuperview().offset(2)
+            $0.trailing.equalToSuperview().inset(2)
             $0.width.height.equalTo(28)
         }
         
+        // 날짜 레이블 (우상단 정렬)
         dayLabel.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(8)
-            $0.centerX.equalToSuperview()
+            $0.top.equalToSuperview().offset(6)
+            $0.trailing.equalToSuperview().inset(6)
         }
         
+        // 아이콘 (중앙 하단)
         iconImageView.snp.makeConstraints {
-            $0.top.equalTo(dayLabel.snp.bottom).offset(4)
             $0.centerX.equalToSuperview()
+            $0.bottom.equalToSuperview().inset(4)
             $0.width.height.equalTo(24)
         }
     }
