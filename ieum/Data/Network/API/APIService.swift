@@ -28,6 +28,14 @@ final class APIService {
         // 1. 요청 로그
         Logger.network.debug("🚀 [Request] \(method.rawValue) \(endpoint)")
         
+        #if DEBUG
+        if let parameters = parameters,
+           let data = try? JSONEncoder().encode(parameters),
+           let bodyString = String(data: data, encoding: .utf8) {
+            Logger.network.debug("📦 [Request Body] \(bodyString)")
+        }
+        #endif
+        
         let request = session.request(fullURL, method: method, parameters: parameters, encoder: encoder)
             .validate()
         

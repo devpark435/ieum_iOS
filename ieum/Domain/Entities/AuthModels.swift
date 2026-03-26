@@ -9,6 +9,7 @@ struct AppLoginRequest: Codable, Sendable {
     let accessToken: String
 }
 
+
 struct AppLoginResponse: Codable, Sendable {
     let accessToken: String
     let refreshToken: String
