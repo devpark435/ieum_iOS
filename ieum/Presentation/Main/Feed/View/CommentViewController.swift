@@ -200,6 +200,13 @@ final class CommentViewController: DimmedViewController {
                 self?.showEditComment(id: editInfo.id, content: editInfo.content)
             }
             .store(in: &cancellables)
+        
+        viewModel.showReportReasonPicker
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] commentId in
+                self?.showReportReasonActionSheet(for: commentId)
+            }
+            .store(in: &cancellables)
             
         commentInputView.onSendTapped = { [weak self] text in
             self?.viewModel.didTapSend.send(text)
@@ -271,6 +278,14 @@ final class CommentViewController: DimmedViewController {
         alert.addAction(cancelAction)
         
         present(alert, animated: true)
+    }
+    
+    private func showReportReasonActionSheet(for commentId: Int) {
+        let bottomSheet = ReportReasonBottomSheet()
+        bottomSheet.onSelectReason = { [weak self] reason in
+            self?.viewModel.didSelectReportReason.send((commentId, reason))
+        }
+        present(bottomSheet, animated: false)
     }
     
     private func showEditComment(id: Int, content: String) {
@@ -406,7 +421,7 @@ extension CommentViewController: UITableViewDelegate, UITableViewDataSource {
             }
             
             cell.onMenuTapped = { [weak self] in
-                self?.showReportActionSheet(for: comment.id)
+                self?.viewModel.didTapReport.send(comment.id)
             }
             
             cell.onEditTapped = { [weak self] in
@@ -438,7 +453,7 @@ extension CommentViewController: UITableViewDelegate, UITableViewDataSource {
             )
             
             cell.onMenuTapped = { [weak self] in
-                self?.showReportActionSheet(for: reply.id)
+                self?.viewModel.didTapReport.send(reply.id)
             }
             
             cell.onEditTapped = { [weak self] in

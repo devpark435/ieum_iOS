@@ -174,6 +174,13 @@ final class FeedViewController: UIViewController {
             }
             .store(in: &cancellables)
         
+        viewModel.showReportReasonPicker
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] post in
+                self?.showReportReasonActionSheet(for: post)
+            }
+            .store(in: &cancellables)
+        
         viewModel.navigateToEdit
             .receive(on: DispatchQueue.main)
             .sink { [weak self] post in
@@ -227,6 +234,14 @@ final class FeedViewController: UIViewController {
         alert.addAction(cancelAction)
         
         present(alert, animated: true)
+    }
+    
+    private func showReportReasonActionSheet(for post: Post) {
+        let bottomSheet = ReportReasonBottomSheet()
+        bottomSheet.onSelectReason = { [weak self] reason in
+            self?.viewModel.didSelectReportReason.send((post, reason))
+        }
+        present(bottomSheet, animated: false)
     }
     
     private func showWritePostBottomSheet() {

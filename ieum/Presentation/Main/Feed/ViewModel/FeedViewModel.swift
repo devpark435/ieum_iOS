@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import Alamofire
 
 final class FeedViewModel: ObservableObject {
     // Inputs
@@ -12,6 +13,7 @@ final class FeedViewModel: ObservableObject {
     let didTapEdit = PassthroughSubject<Post, Never>()
     let didTapDelete = PassthroughSubject<Post, Never>()
     let didTapReport = PassthroughSubject<Post, Never>()
+    let didSelectReportReason = PassthroughSubject<(Post, ReportReason), Never>()
     let loadMore = PassthroughSubject<Void, Never>()
     
     // Outputs
@@ -25,6 +27,7 @@ final class FeedViewModel: ObservableObject {
     let showWritePost = PassthroughSubject<Void, Never>()
     let navigateToComments = PassthroughSubject<(Int, PostType), Never>()
     let navigateToEdit = PassthroughSubject<Post, Never>()
+    let showReportReasonPicker = PassthroughSubject<Post, Never>()
     
     private let feedRepository: FeedRepository
     private let authRepository: AuthRepository
@@ -91,8 +94,13 @@ final class FeedViewModel: ObservableObject {
         
         didTapReport
             .sink { [weak self] post in
-                // TODO: 신고하기 API 연동
-                print("신고하기: \(post.id)")
+                self?.showReportReasonPicker.send(post)
+            }
+            .store(in: &cancellables)
+        
+        didSelectReportReason
+            .sink { [weak self] post, reason in
+                self?.reportPost(post: post, reason: reason)
             }
             .store(in: &cancellables)
             
@@ -230,6 +238,40 @@ final class FeedViewModel: ObservableObject {
     func isMyPost(_ post: Post) -> Bool {
         guard let currentUserId = currentUserId else { return false }
         return post.userId == currentUserId
+    }
+    
+    // MARK: - Report
+    
+    private func reportPost(post: Post, reason: ReportReason) {
+        guard post.type != .all else { return }
+        
+        Task { @MainActor in
+            do {
+                _ = try await feedRepository.reportPost(
+                    type: post.type,
+                    id: post.id,
+                    reason: reason.rawValue
+                )
+                Toast.show(message: "신고가 접수되었습니다")
+            } catch {
+                let message = Self.reportErrorMessage(from: error)
+                Toast.show(message: message)
+            }
+        }
+    }
+    
+    private static func reportErrorMessage(from error: Error) -> String {
+        guard let afError = error as? AFError,
+              case .responseValidationFailed(let reason) = afError,
+              case .unacceptableStatusCode(let code) = reason else {
+            return "신고 처리 중 오류가 발생했습니다"
+        }
+        
+        switch code {
+        case 409: return "이미 신고한 게시물입니다"
+        case 403: return "자신의 게시물은 신고할 수 없습니다"
+        default: return "신고 처리 중 오류가 발생했습니다"
+        }
     }
     
     // MARK: - Delete

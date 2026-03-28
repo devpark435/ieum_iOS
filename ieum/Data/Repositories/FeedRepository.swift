@@ -29,6 +29,10 @@ protocol FeedRepository {
     func deleteWellnessPost(id: Int) -> AnyPublisher<Void, Error>
     func updateDailyPost(id: Int, data: UpdateDailyPostData, images: [Data]?) -> AnyPublisher<DailyPostResponse, Error>
     func deleteDailyPost(id: Int) -> AnyPublisher<Void, Error>
+    
+    // 신고
+    func reportPost(type: PostType, id: Int, reason: String) async throws -> ReportPostResponse
+    func reportComment(postType: PostType, postId: Int, commentId: Int, reason: String) async throws -> ReportCommentResponse
 }
 
 final class FeedRepositoryImpl: FeedRepository {
@@ -417,5 +421,19 @@ final class FeedRepositoryImpl: FeedRepository {
                 }
             }
         }.eraseToAnyPublisher()
+    }
+    
+    // MARK: - 신고
+    
+    func reportPost(type: PostType, id: Int, reason: String) async throws -> ReportPostResponse {
+        let endpoint = "/api/v1/posts/\(type.rawValue)/\(id)/report"
+        let request = ReportPostRequest(reason: reason)
+        return try await apiService.request(endpoint, method: .post, parameters: request)
+    }
+    
+    func reportComment(postType: PostType, postId: Int, commentId: Int, reason: String) async throws -> ReportCommentResponse {
+        let endpoint = "/api/v1/posts/\(postType.rawValue)/\(postId)/comments/\(commentId)/report"
+        let request = ReportPostRequest(reason: reason)
+        return try await apiService.request(endpoint, method: .post, parameters: request)
     }
 }

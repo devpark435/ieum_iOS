@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import Alamofire
 
 final class CommentViewModel: ObservableObject {
     
@@ -13,6 +14,7 @@ final class CommentViewModel: ObservableObject {
     let didTapSend = PassthroughSubject<String, Never>()
     let didTapReply = PassthroughSubject<Comment, Never>()
     let didTapReport = PassthroughSubject<Int, Never>() // Comment ID
+    let didSelectReportReason = PassthroughSubject<(Int, ReportReason), Never>()
     let didTapLike = PassthroughSubject<Int, Never>() // Comment ID
     let didTapEdit = PassthroughSubject<Int, Never>() // Comment ID
     let didTapDelete = PassthroughSubject<Int, Never>() // Comment ID
@@ -25,6 +27,7 @@ final class CommentViewModel: ObservableObject {
     @Published private(set) var error: Error?
     let commentPostedSuccessfully = PassthroughSubject<Void, Never>()
     let navigateToEdit = PassthroughSubject<(id: Int, content: String), Never>()
+    let showReportReasonPicker = PassthroughSubject<Int, Never>()
     
     private var currentUserId: Int?
     private let feedRepository: FeedRepository
@@ -65,7 +68,13 @@ final class CommentViewModel: ObservableObject {
         
         didTapReport
             .sink { [weak self] commentId in
-                self?.reportComment(id: commentId)
+                self?.showReportReasonPicker.send(commentId)
+            }
+            .store(in: &cancellables)
+        
+        didSelectReportReason
+            .sink { [weak self] commentId, reason in
+                self?.reportComment(id: commentId, reason: reason)
             }
             .store(in: &cancellables)
             
@@ -163,8 +172,35 @@ final class CommentViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    private func reportComment(id: Int) {
-        print("Report Comment ID: \(id)")
+    private func reportComment(id: Int, reason: ReportReason) {
+        Task { @MainActor in
+            do {
+                _ = try await feedRepository.reportComment(
+                    postType: postType,
+                    postId: postId,
+                    commentId: id,
+                    reason: reason.rawValue
+                )
+                Toast.show(message: "신고가 접수되었습니다")
+            } catch {
+                let message = Self.reportErrorMessage(from: error)
+                Toast.show(message: message)
+            }
+        }
+    }
+    
+    private static func reportErrorMessage(from error: Error) -> String {
+        guard let afError = error as? AFError,
+              case .responseValidationFailed(let reason) = afError,
+              case .unacceptableStatusCode(let code) = reason else {
+            return "신고 처리 중 오류가 발생했습니다"
+        }
+        
+        switch code {
+        case 409: return "이미 신고한 댓글입니다"
+        case 403: return "자신의 댓글은 신고할 수 없습니다"
+        default: return "신고 처리 중 오류가 발생했습니다"
+        }
     }
     
     private func toggleLike(for id: Int) {
