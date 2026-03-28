@@ -18,11 +18,13 @@ final class CalendarViewModel: ObservableObject {
     @Published private(set) var records: [CalendarDayRecord] = []
     @Published private(set) var totalDaysInMonth: Int = 0
     @Published private(set) var recordedDaysCount: Int = 0
+    @Published private(set) var isLoading: Bool = false
     
     // MARK: - Properties
     
     private var cancellables = Set<AnyCancellable>()
     private let calendar = Calendar.current
+    private let feedRepository: FeedRepository
     
     // MARK: - Computed Properties
     
@@ -35,7 +37,8 @@ final class CalendarViewModel: ObservableObject {
     
     // MARK: - Initializer
     
-    init() {
+    init(feedRepository: FeedRepository) {
+        self.feedRepository = feedRepository
         bindInputs()
     }
     
@@ -44,14 +47,14 @@ final class CalendarViewModel: ObservableObject {
     private func bindInputs() {
         viewDidLoad
             .sink { [weak self] in
-                self?.loadCalendarData()
+                Task { await self?.loadCalendarData() }
             }
             .store(in: &cancellables)
         
         didSelectMonth
             .sink { [weak self] date in
                 self?.currentMonth = date
-                self?.loadCalendarData()
+                Task { await self?.loadCalendarData() }
             }
             .store(in: &cancellables)
         
@@ -64,7 +67,6 @@ final class CalendarViewModel: ObservableObject {
         
         didSelectDate
             .sink { [weak self] date in
-                // 추후 날짜 선택 시 동작 구현
                 print("Selected date: \(date)")
             }
             .store(in: &cancellables)
@@ -72,11 +74,62 @@ final class CalendarViewModel: ObservableObject {
     
     // MARK: - Data Loading
     
-    private func loadCalendarData() {
+    @MainActor
+    private func loadCalendarData() async {
         generateCalendarDays()
-        loadMockRecords()
+        await loadMonthlyRecords()
         updateCalendarDays()
         updateStatistics()
+    }
+    
+    @MainActor
+    private func loadMonthlyRecords() async {
+        let year = calendar.component(.year, from: currentMonth)
+        let month = calendar.component(.month, from: currentMonth)
+        
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            let response = try await feedRepository.fetchMonthlyWellnessPosts(year: year, month: month)
+            records = mapToCalendarRecords(posts: response.posts)
+        } catch {
+            records = []
+        }
+    }
+    
+    private func mapToCalendarRecords(posts: [MonthlyWellnessPost]) -> [CalendarDayRecord] {
+        var recordMap: [String: CalendarDayRecord] = [:]
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        
+        for post in posts {
+            let date = Date(timeIntervalSince1970: TimeInterval(post.createdAt) / 1000)
+            let dateKey = dateFormatter.string(from: date)
+            
+            let mood = post.mood.flatMap { MoodType(moodValue: $0) }
+            let hasSymptom = !(post.unusualSymptoms ?? "").isEmpty
+            let hasDiet = post.diet != nil
+            
+            if var existing = recordMap[dateKey] {
+                // 같은 날짜에 여러 포스트가 있을 경우 병합
+                if mood != nil { existing.mood = mood }
+                if hasSymptom { existing.hasSymptom = true }
+                if hasDiet { existing.hasDiet = true }
+                existing.hasTreatment = true
+                recordMap[dateKey] = existing
+            } else {
+                recordMap[dateKey] = CalendarDayRecord(
+                    date: date,
+                    hasTreatment: true,
+                    mood: mood,
+                    hasSymptom: hasSymptom,
+                    hasDiet: hasDiet
+                )
+            }
+        }
+        
+        return Array(recordMap.values)
     }
     
     private func generateCalendarDays() {
@@ -140,42 +193,6 @@ final class CalendarViewModel: ObservableObject {
         
         calendarDays = days
         totalDaysInMonth = range.count
-    }
-    
-    private func loadMockRecords() {
-        // Mock 데이터 생성
-        var mockRecords: [CalendarDayRecord] = []
-        
-        guard let range = calendar.range(of: .day, in: .month, for: currentMonth) else { return }
-        
-        for day in range {
-            if let date = calendar.date(from: DateComponents(
-                year: calendar.component(.year, from: currentMonth),
-                month: calendar.component(.month, from: currentMonth),
-                day: day
-            )) {
-                // 랜덤하게 기록 생성 (약 40% 확률로 기록 있음)
-                let hasRecord = Int.random(in: 0...10) < 4
-                
-                if hasRecord {
-                    let hasTreatment = Bool.random()
-                    let mood: MoodType? = Bool.random() ? MoodType.allCases.randomElement() : nil
-                    let hasSymptom = Bool.random()
-                    let hasDiet = Bool.random()
-                    
-                    let record = CalendarDayRecord(
-                        date: date,
-                        hasTreatment: hasTreatment,
-                        mood: mood,
-                        hasSymptom: hasSymptom,
-                        hasDiet: hasDiet
-                    )
-                    mockRecords.append(record)
-                }
-            }
-        }
-        
-        records = mockRecords
     }
     
     private func updateCalendarDays() {

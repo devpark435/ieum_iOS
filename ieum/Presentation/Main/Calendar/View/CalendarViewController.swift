@@ -7,7 +7,7 @@ final class CalendarViewController: UIViewController {
     
     // MARK: - Properties
     
-    private let viewModel = CalendarViewModel()
+    private let viewModel = CalendarViewModel(feedRepository: FeedRepositoryImpl())
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: - UI Components
@@ -106,6 +106,14 @@ final class CalendarViewController: UIViewController {
     // MARK: - Bindings
     
     private func bindViewModel() {
+        // 로딩 상태
+        viewModel.$isLoading
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isLoading in
+                isLoading ? self?.showLoadingIndicator() : self?.hideLoadingIndicator()
+            }
+            .store(in: &cancellables)
+        
         // 현재 월 표시 업데이트
         viewModel.$currentMonth
             .receive(on: DispatchQueue.main)
@@ -163,6 +171,18 @@ final class CalendarViewController: UIViewController {
             recordedDays: viewModel.recordedDaysCount,
             selectedFilter: viewModel.selectedFilter
         )
+    }
+    
+    private func showLoadingIndicator() {
+        calendarGridView.alpha = 0.4
+        statsView.alpha = 0.4
+    }
+    
+    private func hideLoadingIndicator() {
+        UIView.animate(withDuration: 0.2) {
+            self.calendarGridView.alpha = 1.0
+            self.statsView.alpha = 1.0
+        }
     }
     
     // MARK: - Month Picker

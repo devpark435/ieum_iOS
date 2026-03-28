@@ -74,6 +74,17 @@ enum MoodType: String, CaseIterable {
         case .veryBad: return "😭"
         }
     }
+    
+    init?(moodValue: Int) {
+        switch moodValue {
+        case 1: self = .veryGood
+        case 2: self = .good
+        case 3: self = .normal
+        case 4: self = .bad
+        case 5: self = .veryBad
+        default: return nil
+        }
+    }
 }
 
 // MARK: - 날짜별 기록 데이터

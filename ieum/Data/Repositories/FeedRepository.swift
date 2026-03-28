@@ -6,6 +6,7 @@ protocol FeedRepository {
     // 조회
     func fetchPosts(type: PostType, page: Int, pageSize: Int, diagnosis: String?, mood: Int?) -> AnyPublisher<AllPostsResponse, Error>
     func fetchMyPosts(type: String?, page: Int, pageSize: Int, sort: String?, order: String?, diagnosis: String?, fromDate: String?, toDate: String?) -> AnyPublisher<FeedResponse, Error>
+    func fetchMonthlyWellnessPosts(year: Int, month: Int) async throws -> MonthlyWellnessResponse
     
     // 작성
     func createWellnessPost(data: CreateWellnessPostData, images: [Data]?) -> AnyPublisher<WellnessPostResponse, Error>
@@ -64,6 +65,16 @@ final class FeedRepositoryImpl: FeedRepository {
                 }
             }
         }.eraseToAnyPublisher()
+    }
+    
+    func fetchMonthlyWellnessPosts(year: Int, month: Int) async throws -> MonthlyWellnessResponse {
+        var components = URLComponents(string: "/api/v1/posts/wellness/monthly")
+        components?.queryItems = [
+            URLQueryItem(name: "year", value: String(year)),
+            URLQueryItem(name: "month", value: String(month))
+        ]
+        let endpoint = components?.url?.absoluteString ?? "/api/v1/posts/wellness/monthly"
+        return try await apiService.request(endpoint, method: .get)
     }
     
     func fetchMyPosts(type: String?, page: Int, pageSize: Int, sort: String?, order: String?, diagnosis: String?, fromDate: String?, toDate: String?) -> AnyPublisher<FeedResponse, Error> {
