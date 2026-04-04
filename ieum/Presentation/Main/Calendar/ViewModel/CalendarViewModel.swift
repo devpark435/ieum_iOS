@@ -104,7 +104,7 @@ final class CalendarViewModel: ObservableObject {
         dateFormatter.dateFormat = "yyyy-MM-dd"
         
         for post in posts {
-            let date = Date(timeIntervalSince1970: TimeInterval(post.createdAt) / 1000)
+            let date = Date(timeIntervalSince1970: TimeInterval(post.createdAt))
             let dateKey = dateFormatter.string(from: date)
             
             let mood = post.mood.flatMap { MoodType(moodValue: $0) }
