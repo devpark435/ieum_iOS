@@ -156,7 +156,7 @@ extension CalendarGridView: UICollectionViewDataSource {
 extension CalendarGridView: UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         let width = (collectionView.bounds.width) / 7
-        return CGSize(width: width, height: 56)
+        return CGSize(width: width, height: 64)
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {

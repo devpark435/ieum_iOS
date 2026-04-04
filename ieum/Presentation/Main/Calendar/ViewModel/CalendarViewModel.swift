@@ -6,6 +6,7 @@ final class CalendarViewModel: ObservableObject {
     // MARK: - Inputs
     
     let viewDidLoad = PassthroughSubject<Void, Never>()
+    let viewWillAppear = PassthroughSubject<Void, Never>()
     let didSelectMonth = PassthroughSubject<Date, Never>()
     let didSelectFilter = PassthroughSubject<CalendarRecordType?, Never>()
     let didSelectDate = PassthroughSubject<Date, Never>()
@@ -46,6 +47,12 @@ final class CalendarViewModel: ObservableObject {
     
     private func bindInputs() {
         viewDidLoad
+            .sink { [weak self] in
+                Task { await self?.loadCalendarData() }
+            }
+            .store(in: &cancellables)
+        
+        viewWillAppear
             .sink { [weak self] in
                 Task { await self?.loadCalendarData() }
             }
@@ -112,8 +119,12 @@ final class CalendarViewModel: ObservableObject {
             let hasDiet = post.diet != nil
             
             if var existing = recordMap[dateKey] {
-                // 같은 날짜에 여러 포스트가 있을 경우 병합
-                if mood != nil { existing.mood = mood }
+                existing.recordCount += 1
+                // 가장 최근 포스트의 mood를 사용
+                if post.createdAt > existing.latestCreatedAt {
+                    if mood != nil { existing.mood = mood }
+                    existing.latestCreatedAt = post.createdAt
+                }
                 if hasSymptom { existing.hasSymptom = true }
                 if hasDiet { existing.hasDiet = true }
                 existing.hasTreatment = true
@@ -124,7 +135,9 @@ final class CalendarViewModel: ObservableObject {
                     hasTreatment: true,
                     mood: mood,
                     hasSymptom: hasSymptom,
-                    hasDiet: hasDiet
+                    hasDiet: hasDiet,
+                    recordCount: 1,
+                    latestCreatedAt: post.createdAt
                 )
             }
         }

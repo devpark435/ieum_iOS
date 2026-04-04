@@ -95,17 +95,21 @@ struct CalendarDayRecord {
     var mood: MoodType?
     var hasSymptom: Bool
     var hasDiet: Bool
+    var recordCount: Int
+    var latestCreatedAt: Int
     
     var hasAnyRecord: Bool {
         return hasTreatment || mood != nil || hasSymptom || hasDiet
     }
     
-    init(date: Date, hasTreatment: Bool = false, mood: MoodType? = nil, hasSymptom: Bool = false, hasDiet: Bool = false) {
+    init(date: Date, hasTreatment: Bool = false, mood: MoodType? = nil, hasSymptom: Bool = false, hasDiet: Bool = false, recordCount: Int = 1, latestCreatedAt: Int = 0) {
         self.date = date
         self.hasTreatment = hasTreatment
         self.mood = mood
         self.hasSymptom = hasSymptom
         self.hasDiet = hasDiet
+        self.recordCount = recordCount
+        self.latestCreatedAt = latestCreatedAt
     }
 }
 

@@ -44,6 +44,7 @@ final class CalendarViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(true, animated: animated)
+        viewModel.viewWillAppear.send()
     }
     
     // MARK: - Setup
@@ -75,7 +76,7 @@ final class CalendarViewController: UIViewController {
         calendarGridView.snp.makeConstraints {
             $0.top.equalTo(headerView.snp.bottom)
             $0.leading.trailing.equalToSuperview()
-            $0.height.equalTo(400) // 6주 * 56 + 요일 헤더
+            $0.height.equalTo(440) // 6주 * 64 + 요일 헤더(32) + 간격
         }
         
         statsView.snp.makeConstraints {
