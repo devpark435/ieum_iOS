@@ -35,7 +35,7 @@ final class FeedViewModel: ObservableObject {
     
     private var currentPage = 1
     private let pageSize = 10
-    @Published private(set) var isLastPage = false
+    private var isLastPage = false
     
     init(feedRepository: FeedRepository = FeedRepositoryImpl(),
          authRepository: AuthRepository = AuthRepositoryImpl()) {
@@ -121,10 +121,8 @@ final class FeedViewModel: ObservableObject {
     }
     
     private func loadNextPage() {
-        print("📄 [Pagination] loadNextPage 호출 - isLoading: \(isLoading), isLastPage: \(isLastPage), currentPage: \(currentPage)")
         guard !isLoading, !isLastPage else { return }
         currentPage += 1
-        print("📄 [Pagination] page \(currentPage) 요청 시작")
         fetchPosts()
     }
     
@@ -133,7 +131,6 @@ final class FeedViewModel: ObservableObject {
         
         let type = convertFilterToPostType(selectedFilter)
         let diagnosis = convertFilterToDiagnosis(selectedFilter)
-        print("📄 [Pagination] fetchPosts 호출 - page: \(currentPage), type: \(String(describing: type)), filter: \(selectedFilter)")
         
         feedRepository.fetchPosts(type: type, page: currentPage, pageSize: pageSize, diagnosis: diagnosis, mood: nil)
             .receive(on: DispatchQueue.main)
@@ -156,7 +153,6 @@ final class FeedViewModel: ObservableObject {
                 }
                 
                 self.isLastPage = self.currentPage >= response.pagination.totalPages
-                print("📄 [Pagination] 응답 완료 - page: \(self.currentPage)/\(response.pagination.totalPages), posts: \(response.posts.count)개, 총: \(self.posts.count)개, isLastPage: \(self.isLastPage)")
             }
             .store(in: &cancellables)
     }

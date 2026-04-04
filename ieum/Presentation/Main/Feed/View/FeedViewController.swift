@@ -25,26 +25,18 @@ final class FeedViewController: UIViewController {
     
     // MARK: - UI Components
     
-    private let scrollView = UIScrollView().then {
-        $0.showsVerticalScrollIndicator = false
+    private let tableView = UITableView().then {
         $0.backgroundColor = Colors.white
+        $0.separatorStyle = .none
+        $0.showsVerticalScrollIndicator = false
+        $0.register(FeedPostCell.self, forCellReuseIdentifier: FeedPostCell.identifier)
     }
-    
-    private let contentView = UIView()
     
     private let filterChipView = FilterChipView().then {
         $0.backgroundColor = Colors.white
     }
     
     private let adCardView = AdCardView()
-    
-    private let tableView = UITableView().then {
-        $0.backgroundColor = Colors.white
-        $0.separatorStyle = .none
-        $0.showsVerticalScrollIndicator = false
-        $0.isScrollEnabled = false
-        $0.register(FeedPostCell.self, forCellReuseIdentifier: FeedPostCell.identifier)
-    }
     
     private let floatingActionButton = FloatingActionButton()
     
@@ -60,7 +52,6 @@ final class FeedViewController: UIViewController {
         setupTableView()
         bindViewModel()
         
-        print("📄 [Feed] viewDidLoad - scrollView.delegate: \(String(describing: scrollView.delegate))")
         viewModel.viewDidLoad.send()
     }
     
@@ -95,46 +86,15 @@ final class FeedViewController: UIViewController {
     }
     
     private func setupUI() {
-        view.addSubview(scrollView)
-        scrollView.addSubview(contentView)
-        
-        contentView.addSubview(filterChipView)
-        contentView.addSubview(adCardView)
-        contentView.addSubview(tableView)
-        
+        view.addSubview(tableView)
         view.addSubview(floatingActionButton)
-        // 버튼이 다른 뷰 위에 표시되도록
         view.bringSubviewToFront(floatingActionButton)
     }
     
     private func setupLayout() {
-        scrollView.snp.makeConstraints {
-            $0.edges.equalToSuperview()
-        }
-        
-        contentView.snp.makeConstraints {
-            $0.edges.equalToSuperview()
-            $0.width.equalToSuperview()
-        }
-        
-        filterChipView.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(16)
-            $0.leading.equalToSuperview().inset(20)
-            $0.trailing.equalToSuperview()
-            $0.height.equalTo(32)
-        }
-        
-        adCardView.snp.makeConstraints {
-            $0.top.equalTo(filterChipView.snp.bottom).offset(16)
-            $0.leading.trailing.equalToSuperview().inset(20)
-            $0.height.equalTo(100)
-        }
-        
         tableView.snp.makeConstraints {
-            $0.top.equalTo(adCardView.snp.bottom).offset(16)
+            $0.top.bottom.equalToSuperview()
             $0.leading.trailing.equalToSuperview().inset(20)
-            $0.height.equalTo(500) // 임시 높이, 실제로는 셀 높이에 따라 동적으로 계산
-            $0.bottom.equalToSuperview().inset(16)
         }
         
         floatingActionButton.snp.makeConstraints {
@@ -146,7 +106,52 @@ final class FeedViewController: UIViewController {
     private func setupTableView() {
         tableView.delegate = self
         tableView.dataSource = self
-        scrollView.delegate = self
+        tableView.prefetchDataSource = self
+        
+        setupTableHeaderView()
+    }
+    
+    private func setupTableHeaderView() {
+        let headerContainer = UIView()
+        
+        headerContainer.addSubview(filterChipView)
+        headerContainer.addSubview(adCardView)
+        
+        filterChipView.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(16)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(32)
+        }
+        
+        adCardView.snp.makeConstraints {
+            $0.top.equalTo(filterChipView.snp.bottom).offset(16)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(100)
+            $0.bottom.equalToSuperview().inset(16)
+        }
+        
+        headerContainer.layoutIfNeeded()
+        let headerHeight = adCardView.frame.maxY + 16
+        headerContainer.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: headerHeight)
+        
+        tableView.tableHeaderView = headerContainer
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        
+        guard let headerView = tableView.tableHeaderView else { return }
+        let targetSize = CGSize(width: tableView.bounds.width, height: UIView.layoutFittingCompressedSize.height)
+        let headerSize = headerView.systemLayoutSizeFitting(
+            targetSize,
+            withHorizontalFittingPriority: .required,
+            verticalFittingPriority: .fittingSizeLevel
+        )
+        
+        if headerView.frame.size.height != headerSize.height {
+            headerView.frame.size.height = headerSize.height
+            tableView.tableHeaderView = headerView
+        }
     }
     
     private func bindViewModel() {
@@ -202,28 +207,8 @@ final class FeedViewController: UIViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.tableView.reloadData()
-                self?.updateTableViewHeight()
             }
             .store(in: &cancellables)
-        
-        viewModel.$isLastPage
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] isLastPage in
-                self?.scrollView.bounces = !isLastPage
-            }
-            .store(in: &cancellables)
-    }
-    
-    private func updateTableViewHeight() {
-        tableView.layoutIfNeeded()
-        let totalHeight = tableView.contentSize.height
-        print("📄 [Layout] updateTableViewHeight - tableView contentHeight: \(totalHeight), scrollView contentSize: \(scrollView.contentSize)")
-
-        tableView.snp.updateConstraints {
-            $0.height.equalTo(totalHeight)
-        }
-        
-        view.layoutIfNeeded()
     }
     
     @objc private func didTapNotification() {
@@ -259,7 +244,6 @@ final class FeedViewController: UIViewController {
     private func showWritePostBottomSheet() {
         let bottomSheet = WritePostBottomSheet()
         
-        // 전체 화면을 덮도록 설정 (네비게이션 바 포함)
         bottomSheet.modalPresentationStyle = .overFullScreen
         
         bottomSheet.onSelectTreatmentRecord = { [weak self] in
@@ -274,7 +258,6 @@ final class FeedViewController: UIViewController {
             }
         }
         
-        // 애니메이션 없이 present (모달 내부에서 애니메이션 처리)
         present(bottomSheet, animated: false)
     }
 }
@@ -299,9 +282,6 @@ extension FeedViewController: UITableViewDataSource {
             guard let self = self else { return }
             self.tableView.beginUpdates()
             self.tableView.endUpdates()
-            DispatchQueue.main.async {
-                self.updateTableViewHeight()
-            }
         }
         
         cell.onLikeTapped = { [weak self] in
@@ -344,21 +324,17 @@ extension FeedViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
         return 500
     }
-    
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        if scrollView === self.scrollView {
-            let offsetY = scrollView.contentOffset.y
-            let contentHeight = scrollView.contentSize.height
-            let frameHeight = scrollView.frame.height
-            
-            let threshold: CGFloat = 200
-            let shouldLoadMore = offsetY > contentHeight - frameHeight - threshold
-            
-            if shouldLoadMore {
-                print("📄 [Pagination] 하단 도달 - offsetY: \(offsetY), contentHeight: \(contentHeight), frameHeight: \(frameHeight)")
-                viewModel.loadMore.send()
-            }
+}
+
+// MARK: - UITableViewDataSourcePrefetching
+
+extension FeedViewController: UITableViewDataSourcePrefetching {
+    func tableView(_ tableView: UITableView, prefetchRowsAt indexPaths: [IndexPath]) {
+        let lastRow = viewModel.posts.count - 1
+        guard lastRow >= 0 else { return }
+        
+        if indexPaths.contains(where: { $0.row >= lastRow - 3 }) {
+            viewModel.loadMore.send()
         }
     }
 }
-
