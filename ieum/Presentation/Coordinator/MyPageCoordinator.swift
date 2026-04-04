@@ -34,6 +34,13 @@ final class MyPageCoordinator: Coordinator {
                 self?.showProfileEdit()
             }
             .store(in: &cancellables)
+        
+        viewModel.didTapEditNickname
+            .sink { [weak self] in
+                guard let self = self, let profile = viewModel.userProfile else { return }
+                self.showEditNickname(profile: profile)
+            }
+            .store(in: &cancellables)
             
         viewModel.didTapInfoSection
             .sink { [weak self] sectionType in
@@ -52,6 +59,25 @@ final class MyPageCoordinator: Coordinator {
     
     func showProfileEdit() {
         let editVC = ProfileEditViewController()
+        editVC.hidesBottomBarWhenPushed = true
+        navigationController.pushViewController(editVC, animated: true)
+    }
+    
+    func showEditNickname(profile: UserProfile) {
+        let editVC = NicknameEditViewController(
+            currentNickname: profile.nickname,
+            onComplete: { [weak self] nickname in
+                guard let self = self, let viewModel = self.viewModel else { return }
+                let request = viewModel.createUpdateRequest(from: profile, updatingNickname: nickname)
+                viewModel.updateProfile(request)
+                    .sink(
+                        receiveCompletion: { _ in },
+                        receiveValue: { _ in }
+                    )
+                    .store(in: &self.cancellables)
+                self.navigationController.popViewController(animated: true)
+            }
+        )
         editVC.hidesBottomBarWhenPushed = true
         navigationController.pushViewController(editVC, animated: true)
     }
@@ -157,6 +183,7 @@ final class MyPageCoordinator: Coordinator {
                     updatingSurgery: surgeries.isEmpty ? [] : surgeries
                 )
                 let updatedRequest = UpdateProfileRequest(
+                    nickname: nil,
                     diagnoses: request.diagnoses,
                     surgery: surgeries.isEmpty ? [] : surgeries,
                     chemotherapy: request.chemotherapy,
@@ -195,6 +222,7 @@ final class MyPageCoordinator: Coordinator {
                     updatingChemotherapy: chemotherapies.isEmpty ? [] : chemotherapies
                 )
                 let updatedRequest = UpdateProfileRequest(
+                    nickname: nil,
                     diagnoses: request.diagnoses,
                     surgery: request.surgery,
                     chemotherapy: chemotherapies.isEmpty ? [] : chemotherapies,
@@ -233,6 +261,7 @@ final class MyPageCoordinator: Coordinator {
                     updatingRadiationTherapy: radiations.isEmpty ? [] : radiations
                 )
                 let updatedRequest = UpdateProfileRequest(
+                    nickname: nil,
                     diagnoses: request.diagnoses,
                     surgery: request.surgery,
                     chemotherapy: request.chemotherapy,

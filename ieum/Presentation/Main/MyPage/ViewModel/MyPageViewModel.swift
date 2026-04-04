@@ -7,6 +7,7 @@ final class MyPageViewModel: ObservableObject {
     // MARK: - Inputs
     let viewDidLoad = PassthroughSubject<Void, Never>()
     let didTapEditProfile = PassthroughSubject<Void, Never>()
+    let didTapEditNickname = PassthroughSubject<Void, Never>()
     let didTapInfoSection = PassthroughSubject<InfoSectionType, Never>()
     
     // MARK: - Outputs
@@ -75,6 +76,7 @@ final class MyPageViewModel: ObservableObject {
     
     func createUpdateRequest(
         from profile: UserProfile,
+        updatingNickname: String? = nil,
         updatingDiagnoses: [DiagnosisRequest]? = nil,
         updatingAgeGroup: String? = nil,
         updatingResidenceArea: String? = nil,
@@ -122,6 +124,7 @@ final class MyPageViewModel: ObservableObject {
         }()
         
         return UpdateProfileRequest(
+            nickname: updatingNickname,
             diagnoses: diagnoses,
             surgery: surgery,
             chemotherapy: chemotherapy,

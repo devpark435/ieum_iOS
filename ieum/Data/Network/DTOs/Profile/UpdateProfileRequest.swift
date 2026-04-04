@@ -1,6 +1,7 @@
 import Foundation
 
 struct UpdateProfileRequest: Codable, Sendable {
+    let nickname: String?
     let diagnoses: [DiagnosisRequest]?
     let surgery: [SurgeryRequest]?
     let chemotherapy: [ChemotherapyRequest]?

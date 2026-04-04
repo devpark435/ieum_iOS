@@ -102,10 +102,14 @@ final class MyProfileViewController: UIViewController {
                 self.updateUI(with: profile)
             }
             .store(in: &cancellables)
+        
+        profileHeaderView.onEditNicknameTapped = { [weak self] in
+            self?.viewModel.didTapEditNickname.send()
+        }
     }
     
     private func updateUI(with profile: UserProfile) {
-        profileHeaderView.configure(nickname: profile.nickname, friendCount: 100) // Mock friend count
+        profileHeaderView.configure(nickname: profile.nickname)
         
         infoStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         
@@ -193,6 +197,8 @@ final class MyProfileViewController: UIViewController {
 
 final class ProfileHeaderView: UIView {
     
+    var onEditNicknameTapped: (() -> Void)?
+    
     private let profileImageView = UIImageView().then {
         $0.backgroundColor = Colors.Gray.g200
         $0.layer.cornerRadius = 32
@@ -204,20 +210,33 @@ final class ProfileHeaderView: UIView {
         $0.textColor = Colors.Gray.g950
     }
     
-    private let friendCountLabel = UILabel().then {
-        $0.font = .ieum(UIFont.IeumFont.Text.bodySmall)
-        $0.textColor = Colors.Gray.g600
+    private let editNicknameChip = UIButton().then {
+        $0.backgroundColor = Colors.Gray.g100
+        $0.layer.cornerRadius = 12
+        
+        var config = UIButton.Configuration.plain()
+        config.image = UIImage(systemName: "pencil")?.withConfiguration(
+            UIImage.SymbolConfiguration(pointSize: 10, weight: .medium)
+        )
+        config.title = "닉네임 변경"
+        config.imagePadding = 3
+        config.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8)
+        config.baseForegroundColor = Colors.Gray.g500
+        $0.configuration = config
+        $0.titleLabel?.font = .ieum(UIFont.IeumFont.Text.bodySmall)
     }
     
-    private let editButton = UIButton().then {
-        $0.setImage(UIImage(systemName: "pencil"), for: .normal)
-        $0.tintColor = Colors.Gray.g950
-    }
+    // TODO: 친구 기능 추후 추가 예정
+//    private let friendCountLabel = UILabel().then {
+//        $0.font = .ieum(UIFont.IeumFont.Text.bodySmall)
+//        $0.textColor = Colors.Gray.g600
+//    }
     
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
         setupLayout()
+        setupActions()
     }
     
     required init?(coder: NSCoder) {
@@ -227,8 +246,7 @@ final class ProfileHeaderView: UIView {
     private func setupUI() {
         addSubview(profileImageView)
         addSubview(nicknameLabel)
-        addSubview(friendCountLabel)
-        addSubview(editButton)
+        addSubview(editNicknameChip)
     }
     
     private func setupLayout() {
@@ -240,24 +258,25 @@ final class ProfileHeaderView: UIView {
         
         nicknameLabel.snp.makeConstraints {
             $0.leading.equalTo(profileImageView.snp.trailing).offset(16)
-            $0.top.equalTo(profileImageView).offset(8)
+            $0.top.equalTo(profileImageView).offset(10)
         }
         
-        editButton.snp.makeConstraints {
-            $0.leading.equalTo(nicknameLabel.snp.trailing).offset(8)
-            $0.centerY.equalTo(nicknameLabel)
-            $0.width.height.equalTo(20)
-        }
-        
-        friendCountLabel.snp.makeConstraints {
+        editNicknameChip.snp.makeConstraints {
             $0.leading.equalTo(nicknameLabel)
-            $0.top.equalTo(nicknameLabel.snp.bottom).offset(4)
+            $0.top.equalTo(nicknameLabel.snp.bottom).offset(6)
         }
     }
     
-    func configure(nickname: String, friendCount: Int) {
+    private func setupActions() {
+        editNicknameChip.addTarget(self, action: #selector(didTapEditNickname), for: .touchUpInside)
+    }
+    
+    @objc private func didTapEditNickname() {
+        onEditNicknameTapped?()
+    }
+    
+    func configure(nickname: String) {
         nicknameLabel.text = nickname
-        friendCountLabel.text = "친구 \(friendCount) >"
     }
 }
 
