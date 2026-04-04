@@ -53,9 +53,9 @@ final class FilterChipView: UIView {
     
     var onFilterSelected: ((String) -> Void)?
     
-    private let filterItems = ["전체", "직장암", "대장암", "간이식", "기타"] // "유방암"은 API에 없어서 제외
+    private let filterItems: [String]
     private var chips: [FilterChip] = []
-    private var selectedFilter: String = "전체"
+    private var selectedFilter: String
     
     // MARK: - UI Components
     
@@ -72,8 +72,10 @@ final class FilterChipView: UIView {
     
     // MARK: - Initializer
     
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+    init(items: [String] = ["전체", "직장암", "대장암", "간이식", "기타"]) {
+        self.filterItems = items
+        self.selectedFilter = items.first ?? "전체"
+        super.init(frame: .zero)
         setupUI()
         setupLayout()
         setupChips()
@@ -104,7 +106,7 @@ final class FilterChipView: UIView {
     private func setupChips() {
         filterItems.forEach { title in
             let chip = FilterChip(title: title).then {
-                if title == "전체" {
+                if title == selectedFilter {
                     $0.isSelected = true
                 }
             }

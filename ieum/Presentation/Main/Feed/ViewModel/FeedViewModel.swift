@@ -130,9 +130,10 @@ final class FeedViewModel: ObservableObject {
         isLoading = true
         
         let type = convertFilterToPostType(selectedFilter)
-        let diagnosis = convertFilterToDiagnosis(selectedFilter)
         
-        feedRepository.fetchPosts(type: type, page: currentPage, pageSize: pageSize, diagnosis: diagnosis, mood: nil)
+        // TODO: 첫 배포 이후 diagnosis 필터 복원
+        // let diagnosis = convertFilterToDiagnosis(selectedFilter)
+        feedRepository.fetchPosts(type: type, page: currentPage, pageSize: pageSize, diagnosis: nil, mood: nil)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] completion in
                 self?.isLoading = false
@@ -209,16 +210,17 @@ final class FeedViewModel: ObservableObject {
         }
     }
     
-    private func convertFilterToDiagnosis(_ filter: String) -> String? {
-        switch filter {
-        case "전체": return nil
-        case "직장암": return "rectal_cancer"
-        case "대장암": return "colon_cancer"
-        case "간이식": return "liver_transplant"
-        case "기타": return "others"
-        default: return nil
-        }
-    }
+    // TODO: 첫 배포 이후 diagnosis 필터 복원
+    // private func convertFilterToDiagnosis(_ filter: String) -> String? {
+    //     switch filter {
+    //     case "전체": return nil
+    //     case "직장암": return "rectal_cancer"
+    //     case "대장암": return "colon_cancer"
+    //     case "간이식": return "liver_transplant"
+    //     case "기타": return "others"
+    //     default: return nil
+    //     }
+    // }
     
     // MARK: - Current User
     

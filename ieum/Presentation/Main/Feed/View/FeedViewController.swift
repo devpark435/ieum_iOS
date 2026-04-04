@@ -32,11 +32,15 @@ final class FeedViewController: UIViewController {
         $0.register(FeedPostCell.self, forCellReuseIdentifier: FeedPostCell.identifier)
     }
     
-    private let filterChipView = FilterChipView().then {
+    private let typeFilterChipView = FilterChipView(items: ["전체", "일상 기록", "치료 기록"]).then {
         $0.backgroundColor = Colors.white
     }
     
-    private let adCardView = AdCardView()
+    // TODO: 첫 배포 이후 diagnosis 필터 및 광고 카드 복원
+    // private let diagnosisFilterChipView = FilterChipView(items: ["전체", "직장암", "대장암", "간이식", "기타"]).then {
+    //     $0.backgroundColor = Colors.white
+    // }
+    // private let adCardView = AdCardView()
     
     private let floatingActionButton = FloatingActionButton()
     
@@ -114,24 +118,17 @@ final class FeedViewController: UIViewController {
     private func setupTableHeaderView() {
         let headerContainer = UIView()
         
-        headerContainer.addSubview(filterChipView)
-        headerContainer.addSubview(adCardView)
+        headerContainer.addSubview(typeFilterChipView)
         
-        filterChipView.snp.makeConstraints {
+        typeFilterChipView.snp.makeConstraints {
             $0.top.equalToSuperview().offset(16)
             $0.leading.trailing.equalToSuperview()
             $0.height.equalTo(32)
-        }
-        
-        adCardView.snp.makeConstraints {
-            $0.top.equalTo(filterChipView.snp.bottom).offset(16)
-            $0.leading.trailing.equalToSuperview()
-            $0.height.equalTo(100)
             $0.bottom.equalToSuperview().inset(16)
         }
         
         headerContainer.layoutIfNeeded()
-        let headerHeight = adCardView.frame.maxY + 16
+        let headerHeight = typeFilterChipView.frame.maxY + 16
         headerContainer.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: headerHeight)
         
         tableView.tableHeaderView = headerContainer
@@ -155,12 +152,8 @@ final class FeedViewController: UIViewController {
     }
     
     private func bindViewModel() {
-        filterChipView.onFilterSelected = { [weak self] filter in
+        typeFilterChipView.onFilterSelected = { [weak self] filter in
             self?.viewModel.didSelectFilter.send(filter)
-        }
-        
-        adCardView.onLearnMoreTapped = {
-            // TODO: 광고 상세 화면으로 이동
         }
         
         floatingActionButton.onTapped = { [weak self] in
