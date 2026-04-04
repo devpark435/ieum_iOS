@@ -58,10 +58,12 @@ final class CommentCell: UITableViewCell {
         $0.titleLabel?.font = .ieum(UIFont.IeumFont.Text.bodyXSmall)
     }
     
+    // TODO: 댓글 좋아요 API에 isLiked/likesCount가 추가되면 다시 활성화
     private let likeStackView = UIStackView().then {
         $0.axis = .horizontal
         $0.spacing = 4
         $0.alignment = .center
+        $0.isHidden = true
     }
     
     private let likeButton = UIButton().then {

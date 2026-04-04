@@ -86,7 +86,7 @@ final class FeedPostCell: UITableViewCell {
     // Action Buttons
     private let leftActionStackView = UIStackView().then {
         $0.axis = .horizontal
-        $0.spacing = 16
+        $0.spacing = 4
         $0.alignment = .center
     }
     
@@ -101,9 +101,21 @@ final class FeedPostCell: UITableViewCell {
         $0.tintColor = Colors.Gray.g950
     }
     
+    private let likeCountLabel = UILabel().then {
+        $0.font = .ieum(UIFont.IeumFont.Text.bodyXSmall)
+        $0.textColor = Colors.Gray.g950
+        $0.text = "0"
+    }
+    
     private let commentButton = UIButton().then {
         $0.setImage(Images.Icon.message, for: .normal)
         $0.tintColor = Colors.Gray.g950
+    }
+    
+    private let commentCountLabel = UILabel().then {
+        $0.font = .ieum(UIFont.IeumFont.Text.bodyXSmall)
+        $0.textColor = Colors.Gray.g950
+        $0.text = "0"
     }
     
     private let bookmarkButton = UIButton().then {
@@ -176,7 +188,10 @@ final class FeedPostCell: UITableViewCell {
         contentView.addSubview(rightActionStackView)
         
         leftActionStackView.addArrangedSubview(likeButton)
+        leftActionStackView.addArrangedSubview(likeCountLabel)
         leftActionStackView.addArrangedSubview(commentButton)
+        leftActionStackView.addArrangedSubview(commentCountLabel)
+        leftActionStackView.setCustomSpacing(12, after: likeCountLabel)
         
         rightActionStackView.addArrangedSubview(bookmarkButton)
         rightActionStackView.addArrangedSubview(shareButton)
@@ -472,6 +487,9 @@ final class FeedPostCell: UITableViewCell {
         usernameLabel.text = post.userNickname
         isLiked = post.isLiked
         
+        likeCountLabel.text = "\(post.likesCount)"
+        commentCountLabel.text = "\(post.commentsCount ?? 0)"
+        
         // Reset State
         isExpanded = false
         dailyContentLabel.numberOfLines = 3
@@ -643,6 +661,7 @@ final class FeedPostCell: UITableViewCell {
         let color = isLiked ? Colors.Red.r500 : Colors.Gray.g950
         likeButton.setImage(image, for: .normal)
         likeButton.tintColor = color
+        likeCountLabel.textColor = color
     }
     
     private func updateBookmarkButton() {

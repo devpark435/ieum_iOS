@@ -60,6 +60,7 @@ final class FeedViewController: UIViewController {
         setupTableView()
         bindViewModel()
         
+        print("📄 [Feed] viewDidLoad - scrollView.delegate: \(String(describing: scrollView.delegate))")
         viewModel.viewDidLoad.send()
     }
     
@@ -145,6 +146,7 @@ final class FeedViewController: UIViewController {
     private func setupTableView() {
         tableView.delegate = self
         tableView.dataSource = self
+        scrollView.delegate = self
     }
     
     private func bindViewModel() {
@@ -203,15 +205,25 @@ final class FeedViewController: UIViewController {
                 self?.updateTableViewHeight()
             }
             .store(in: &cancellables)
+        
+        viewModel.$isLastPage
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isLastPage in
+                self?.scrollView.bounces = !isLastPage
+            }
+            .store(in: &cancellables)
     }
     
     private func updateTableViewHeight() {
         tableView.layoutIfNeeded()
         let totalHeight = tableView.contentSize.height
-        
+        print("📄 [Layout] updateTableViewHeight - tableView contentHeight: \(totalHeight), scrollView contentSize: \(scrollView.contentSize)")
+
         tableView.snp.updateConstraints {
             $0.height.equalTo(totalHeight)
         }
+        
+        view.layoutIfNeeded()
     }
     
     @objc private func didTapNotification() {
@@ -331,6 +343,22 @@ extension FeedViewController: UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
         return 500
+    }
+    
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        if scrollView === self.scrollView {
+            let offsetY = scrollView.contentOffset.y
+            let contentHeight = scrollView.contentSize.height
+            let frameHeight = scrollView.frame.height
+            
+            let threshold: CGFloat = 200
+            let shouldLoadMore = offsetY > contentHeight - frameHeight - threshold
+            
+            if shouldLoadMore {
+                print("📄 [Pagination] 하단 도달 - offsetY: \(offsetY), contentHeight: \(contentHeight), frameHeight: \(frameHeight)")
+                viewModel.loadMore.send()
+            }
+        }
     }
 }
 
