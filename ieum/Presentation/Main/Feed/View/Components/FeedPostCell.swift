@@ -12,8 +12,9 @@ final class FeedPostCell: UITableViewCell {
     
     var onLikeTapped: (() -> Void)?
     var onCommentTapped: (() -> Void)?
-    var onBookmarkTapped: (() -> Void)?
-    var onShareTapped: (() -> Void)?
+    // TODO: 스크랩/공유 기능 추후 추가 예정
+//    var onBookmarkTapped: (() -> Void)?
+//    var onShareTapped: (() -> Void)?
     var onEditTapped: ((Post) -> Void)?
     var onDeleteTapped: ((Post) -> Void)?
     var onReportTapped: ((Post) -> Void)?
@@ -23,7 +24,7 @@ final class FeedPostCell: UITableViewCell {
     private var isMyPost: Bool = false
     
     private var isLiked = false
-    private var isBookmarked = false
+//    private var isBookmarked = false
     private var isExpanded = false
     
     // MARK: - UI Components
@@ -118,15 +119,16 @@ final class FeedPostCell: UITableViewCell {
         $0.text = "0"
     }
     
-    private let bookmarkButton = UIButton().then {
-        $0.setImage(Images.Icon.bookmark, for: .normal)
-        $0.tintColor = Colors.Gray.g950
-    }
-    
-    private let shareButton = UIButton().then {
-        $0.setImage(Images.Icon.share, for: .normal)
-        $0.tintColor = Colors.Gray.g950
-    }
+    // TODO: 스크랩/공유 기능 추후 추가 예정
+//    private let bookmarkButton = UIButton().then {
+//        $0.setImage(Images.Icon.bookmark, for: .normal)
+//        $0.tintColor = Colors.Gray.g950
+//    }
+//
+//    private let shareButton = UIButton().then {
+//        $0.setImage(Images.Icon.share, for: .normal)
+//        $0.tintColor = Colors.Gray.g950
+//    }
     
     // MARK: - Content Views
     
@@ -193,8 +195,9 @@ final class FeedPostCell: UITableViewCell {
         leftActionStackView.addArrangedSubview(commentCountLabel)
         leftActionStackView.setCustomSpacing(12, after: likeCountLabel)
         
-        rightActionStackView.addArrangedSubview(bookmarkButton)
-        rightActionStackView.addArrangedSubview(shareButton)
+        // TODO: 스크랩/공유 기능 추후 추가 예정
+//        rightActionStackView.addArrangedSubview(bookmarkButton)
+//        rightActionStackView.addArrangedSubview(shareButton)
         
         contentView.addSubview(dailyContentLabel)
         contentView.addSubview(wellnessContainerView)
@@ -261,13 +264,14 @@ final class FeedPostCell: UITableViewCell {
             $0.width.height.equalTo(24)
         }
         
-        bookmarkButton.snp.makeConstraints {
-            $0.width.height.equalTo(24)
-        }
-        
-        shareButton.snp.makeConstraints {
-            $0.width.height.equalTo(24)
-        }
+        // TODO: 스크랩/공유 기능 추후 추가 예정
+//        bookmarkButton.snp.makeConstraints {
+//            $0.width.height.equalTo(24)
+//        }
+//
+//        shareButton.snp.makeConstraints {
+//            $0.width.height.equalTo(24)
+//        }
         
         seeMoreButton.snp.makeConstraints {
             $0.leading.equalToSuperview()
@@ -284,8 +288,9 @@ final class FeedPostCell: UITableViewCell {
     private func setupActions() {
         likeButton.addTarget(self, action: #selector(didTapLike), for: .touchUpInside)
         commentButton.addTarget(self, action: #selector(didTapComment), for: .touchUpInside)
-        bookmarkButton.addTarget(self, action: #selector(didTapBookmark), for: .touchUpInside)
-        shareButton.addTarget(self, action: #selector(didTapShare), for: .touchUpInside)
+        // TODO: 스크랩/공유 기능 추후 추가 예정
+//        bookmarkButton.addTarget(self, action: #selector(didTapBookmark), for: .touchUpInside)
+//        shareButton.addTarget(self, action: #selector(didTapShare), for: .touchUpInside)
         menuButton.addTarget(self, action: #selector(didTapMenu), for: .touchUpInside)
         seeMoreButton.addTarget(self, action: #selector(didTapSeeMore), for: .touchUpInside)
     }
@@ -664,10 +669,11 @@ final class FeedPostCell: UITableViewCell {
         likeCountLabel.textColor = color
     }
     
-    private func updateBookmarkButton() {
-        let image = isBookmarked ? Images.Icon.bookmarkFill : Images.Icon.bookmark
-        bookmarkButton.setImage(image, for: .normal)
-    }
+    // TODO: 스크랩/공유 기능 추후 추가 예정
+//    private func updateBookmarkButton() {
+//        let image = isBookmarked ? Images.Icon.bookmarkFill : Images.Icon.bookmark
+//        bookmarkButton.setImage(image, for: .normal)
+//    }
     
     // MARK: - Actions
     
@@ -681,15 +687,16 @@ final class FeedPostCell: UITableViewCell {
         onCommentTapped?()
     }
     
-    @objc private func didTapBookmark() {
-        isBookmarked.toggle()
-        updateBookmarkButton()
-        onBookmarkTapped?()
-    }
-    
-    @objc private func didTapShare() {
-        onShareTapped?()
-    }
+    // TODO: 스크랩/공유 기능 추후 추가 예정
+//    @objc private func didTapBookmark() {
+//        isBookmarked.toggle()
+//        updateBookmarkButton()
+//        onBookmarkTapped?()
+//    }
+//
+//    @objc private func didTapShare() {
+//        onShareTapped?()
+//    }
     
     @objc private func didTapMenu() {
     }

@@ -75,15 +75,16 @@ final class FeedViewController: UIViewController {
         let logoItem = UIBarButtonItem(customView: logoImageView)
         navigationItem.leftBarButtonItem = logoItem
         
-        let notificationButton = UIBarButtonItem(
-            image: Images.Icon.notification,
-            style: .plain,
-            target: self,
-            action: #selector(didTapNotification)
-        ).then {
-            $0.tintColor = Colors.Gray.g950
-        }
-        navigationItem.rightBarButtonItem = notificationButton
+        // TODO: 알림 기능 추후 추가 예정
+//        let notificationButton = UIBarButtonItem(
+//            image: Images.Icon.notification,
+//            style: .plain,
+//            target: self,
+//            action: #selector(didTapNotification)
+//        ).then {
+//            $0.tintColor = Colors.Gray.g950
+//        }
+//        navigationItem.rightBarButtonItem = notificationButton
         
         navigationController?.navigationBar.backgroundColor = Colors.white
         navigationController?.navigationBar.isTranslucent = false
@@ -204,8 +205,9 @@ final class FeedViewController: UIViewController {
             .store(in: &cancellables)
     }
     
-    @objc private func didTapNotification() {
-    }
+    // TODO: 알림 기능 추후 추가 예정
+//    @objc private func didTapNotification() {
+//    }
     
     private func showDeleteConfirmation(for post: Post) {
         let alert = UIAlertController(
@@ -285,11 +287,12 @@ extension FeedViewController: UITableViewDataSource {
             self?.viewModel.didTapComment.send(post.id)
         }
         
-        cell.onBookmarkTapped = {
-        }
-        
-        cell.onShareTapped = {
-        }
+        // TODO: 스크랩/공유 기능 추후 추가 예정
+//        cell.onBookmarkTapped = {
+//        }
+//
+//        cell.onShareTapped = {
+//        }
         
         cell.onEditTapped = { [weak self] post in
             self?.viewModel.didTapEdit.send(post)
