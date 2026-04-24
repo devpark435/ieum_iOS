@@ -254,6 +254,7 @@ final class FeedViewModel: ObservableObject {
                     id: post.id,
                     reason: reason.rawValue
                 )
+                posts.removeAll { $0.id == post.id && $0.type == post.type }
                 Toast.show(message: "신고가 접수되었습니다")
             } catch {
                 let message = Self.reportErrorMessage(from: error)

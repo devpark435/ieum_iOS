@@ -5,7 +5,7 @@ struct Comment: Codable, Sendable {
     let userId: Int
     let nickname: String
     let content: String
-    let replies: [Reply]
+    var replies: [Reply]
     let createdAt: Int
     let updatedAt: Int
 }

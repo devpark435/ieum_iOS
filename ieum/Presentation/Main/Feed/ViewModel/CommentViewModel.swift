@@ -181,6 +181,12 @@ final class CommentViewModel: ObservableObject {
                     commentId: id,
                     reason: reason.rawValue
                 )
+                comments.removeAll { $0.id == id }
+                comments = comments.map { comment in
+                    var c = comment
+                    c.replies = c.replies.filter { $0.id != id }
+                    return c
+                }
                 Toast.show(message: "신고가 접수되었습니다")
             } catch {
                 let message = Self.reportErrorMessage(from: error)
