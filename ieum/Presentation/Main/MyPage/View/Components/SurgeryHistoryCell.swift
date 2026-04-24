@@ -21,13 +21,19 @@ final class SurgeryHistoryCell: UICollectionViewCell {
         $0.layer.borderColor = Colors.Slate.s200Border.cgColor
     }
     
+    private let deleteButton = UIButton().then {
+        let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .regular)
+        $0.setImage(UIImage(systemName: "trash", withConfiguration: config), for: .normal)
+        $0.tintColor = Colors.Red.r400
+    }
+
     private let stackView = UIStackView().then {
         $0.axis = .vertical
         $0.spacing = 12
         $0.alignment = .fill
         $0.distribution = .fill
     }
-    
+
     private let dateLabel = UILabel().then {
         $0.text = "수술날짜"
         $0.font = .ieum(UIFont.IeumFont.Heading.h5)
@@ -54,7 +60,6 @@ final class SurgeryHistoryCell: UICollectionViewCell {
         setupUI()
         setupLayout()
         setupActions()
-        setupSwipeGesture()
     }
     
     required init?(coder: NSCoder) {
@@ -65,48 +70,51 @@ final class SurgeryHistoryCell: UICollectionViewCell {
     
     private func setupUI() {
         contentView.addSubview(containerView)
+        containerView.addSubview(deleteButton)
         containerView.addSubview(stackView)
-        
+
         stackView.addArrangedSubview(dateLabel)
         stackView.addArrangedSubview(datePickerInputView)
         stackView.addArrangedSubview(descriptionLabel)
         stackView.addArrangedSubview(descriptionInputView)
     }
-    
+
     private func setupLayout() {
         contentView.snp.makeConstraints {
             $0.width.equalTo(UIScreen.main.bounds.width - 40)
         }
-        
+
         containerView.snp.makeConstraints {
             $0.edges.equalToSuperview()
         }
-        
+
+        deleteButton.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(16)
+            $0.trailing.equalToSuperview().inset(16)
+            $0.width.height.equalTo(28)
+        }
+
         stackView.snp.makeConstraints {
-            $0.edges.equalToSuperview().inset(20)
+            $0.top.equalTo(deleteButton.snp.bottom).offset(4)
+            $0.leading.trailing.bottom.equalToSuperview().inset(20)
         }
     }
-    
+
     private func setupActions() {
         datePickerInputView.onDateSelected = { [weak self] date in
             self?.onDateChanged?(date)
         }
-        
+
         descriptionInputView.textField.addTarget(self, action: #selector(descriptionDidChange), for: .editingChanged)
+        deleteButton.addTarget(self, action: #selector(didTapDelete), for: .touchUpInside)
     }
-    
-    private func setupSwipeGesture() {
-        let swipeGesture = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipe))
-        swipeGesture.direction = .left
-        addGestureRecognizer(swipeGesture)
-    }
-    
+
     @objc private func descriptionDidChange() {
         let text = descriptionInputView.textField.text ?? ""
         onDescriptionChanged?(text)
     }
-    
-    @objc private func handleSwipe() {
+
+    @objc private func didTapDelete() {
         showDeleteConfirmation()
     }
     

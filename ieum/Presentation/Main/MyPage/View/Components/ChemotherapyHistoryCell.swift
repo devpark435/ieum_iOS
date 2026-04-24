@@ -23,13 +23,19 @@ final class ChemotherapyHistoryCell: UICollectionViewCell {
         $0.layer.borderColor = Colors.Slate.s200Border.cgColor
     }
     
+    private let deleteButton = UIButton().then {
+        let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .regular)
+        $0.setImage(UIImage(systemName: "trash", withConfiguration: config), for: .normal)
+        $0.tintColor = Colors.Red.r400
+    }
+
     private let stackView = UIStackView().then {
         $0.axis = .vertical
         $0.spacing = 12
         $0.alignment = .fill
         $0.distribution = .fill
     }
-    
+
     private let cycleLabel = UILabel().then {
         $0.text = "차수"
         $0.font = .ieum(UIFont.IeumFont.Heading.h5)
@@ -76,7 +82,6 @@ final class ChemotherapyHistoryCell: UICollectionViewCell {
         setupUI()
         setupLayout()
         setupActions()
-        setupSwipeGesture()
     }
     
     required init?(coder: NSCoder) {
@@ -87,30 +92,38 @@ final class ChemotherapyHistoryCell: UICollectionViewCell {
     
     private func setupUI() {
         contentView.addSubview(containerView)
+        containerView.addSubview(deleteButton)
         containerView.addSubview(stackView)
-        
+
         stackView.addArrangedSubview(cycleLabel)
         stackView.addArrangedSubview(cycleTextField)
         stackView.addArrangedSubview(startDateLabel)
         stackView.addArrangedSubview(startDatePickerInputView)
-        
+
         endDateContainerView.addSubview(endDateLabel)
         endDateContainerView.addSubview(endDatePickerInputView)
         endDateContainerView.addSubview(inProgressChip)
         stackView.addArrangedSubview(endDateContainerView)
     }
-    
+
     private func setupLayout() {
         contentView.snp.makeConstraints {
             $0.width.equalTo(UIScreen.main.bounds.width - 40)
         }
-        
+
         containerView.snp.makeConstraints {
             $0.edges.equalToSuperview()
         }
-        
+
+        deleteButton.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(16)
+            $0.trailing.equalToSuperview().inset(16)
+            $0.width.height.equalTo(28)
+        }
+
         stackView.snp.makeConstraints {
-            $0.edges.equalToSuperview().inset(20)
+            $0.top.equalTo(deleteButton.snp.bottom).offset(4)
+            $0.leading.trailing.bottom.equalToSuperview().inset(20)
         }
         
         cycleTextField.snp.makeConstraints {
@@ -136,39 +149,35 @@ final class ChemotherapyHistoryCell: UICollectionViewCell {
     
     private func setupActions() {
         cycleTextField.addTarget(self, action: #selector(cycleTextFieldDidChange), for: .editingChanged)
-        
+
         startDatePickerInputView.onDateSelected = { [weak self] date in
             self?.onStartDateChanged?(date)
         }
-        
+
         endDatePickerInputView.onDateSelected = { [weak self] date in
             self?.onEndDateChanged?(date)
         }
-        
+
         inProgressChip.onCheckChanged = { [weak self] isChecked in
             self?.updateEndDateEnabled(!isChecked)
             self?.onInProgressChanged?(isChecked)
         }
+
+        deleteButton.addTarget(self, action: #selector(didTapDelete), for: .touchUpInside)
     }
-    
+
     @objc private func cycleTextFieldDidChange() {
         if let text = cycleTextField.text, let cycle = Int(text) {
             onCycleChanged?(cycle)
         }
     }
-    
-    private func setupSwipeGesture() {
-        let swipeGesture = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipe))
-        swipeGesture.direction = .left
-        addGestureRecognizer(swipeGesture)
-    }
-    
+
     private func updateEndDateEnabled(_ enabled: Bool) {
         endDatePickerInputView.isUserInteractionEnabled = enabled
         endDatePickerInputView.alpha = enabled ? 1.0 : 0.5
     }
-    
-    @objc private func handleSwipe() {
+
+    @objc private func didTapDelete() {
         showDeleteConfirmation()
     }
     

@@ -6,6 +6,7 @@ protocol FeedRepository {
     // 조회
     func fetchPosts(type: PostType, page: Int, pageSize: Int, diagnosis: String?, mood: Int?) -> AnyPublisher<AllPostsResponse, Error>
     func fetchMyPosts(type: String?, page: Int, pageSize: Int, sort: String?, order: String?, diagnosis: String?, fromDate: String?, toDate: String?) -> AnyPublisher<FeedResponse, Error>
+    func fetchMonthlyWellnessPosts(year: Int, month: Int) async throws -> MonthlyWellnessResponse
     
     // 작성
     func createWellnessPost(data: CreateWellnessPostData, images: [Data]?) -> AnyPublisher<WellnessPostResponse, Error>
@@ -28,6 +29,10 @@ protocol FeedRepository {
     func deleteWellnessPost(id: Int) -> AnyPublisher<Void, Error>
     func updateDailyPost(id: Int, data: UpdateDailyPostData, images: [Data]?) -> AnyPublisher<DailyPostResponse, Error>
     func deleteDailyPost(id: Int) -> AnyPublisher<Void, Error>
+    
+    // 신고
+    func reportPost(type: PostType, id: Int, reason: String) async throws -> ReportPostResponse
+    func reportComment(postType: PostType, postId: Int, commentId: Int, reason: String) async throws -> ReportCommentResponse
 }
 
 final class FeedRepositoryImpl: FeedRepository {
@@ -64,6 +69,16 @@ final class FeedRepositoryImpl: FeedRepository {
                 }
             }
         }.eraseToAnyPublisher()
+    }
+    
+    func fetchMonthlyWellnessPosts(year: Int, month: Int) async throws -> MonthlyWellnessResponse {
+        var components = URLComponents(string: "/api/v1/posts/wellness/monthly")
+        components?.queryItems = [
+            URLQueryItem(name: "year", value: String(year)),
+            URLQueryItem(name: "month", value: String(month))
+        ]
+        let endpoint = components?.url?.absoluteString ?? "/api/v1/posts/wellness/monthly"
+        return try await apiService.request(endpoint, method: .get)
     }
     
     func fetchMyPosts(type: String?, page: Int, pageSize: Int, sort: String?, order: String?, diagnosis: String?, fromDate: String?, toDate: String?) -> AnyPublisher<FeedResponse, Error> {
@@ -406,5 +421,19 @@ final class FeedRepositoryImpl: FeedRepository {
                 }
             }
         }.eraseToAnyPublisher()
+    }
+    
+    // MARK: - 신고
+    
+    func reportPost(type: PostType, id: Int, reason: String) async throws -> ReportPostResponse {
+        let endpoint = "/api/v1/posts/\(type.rawValue)/\(id)/report"
+        let request = ReportPostRequest(reason: reason)
+        return try await apiService.request(endpoint, method: .post, parameters: request)
+    }
+    
+    func reportComment(postType: PostType, postId: Int, commentId: Int, reason: String) async throws -> ReportCommentResponse {
+        let endpoint = "/api/v1/posts/\(postType.rawValue)/\(postId)/comments/\(commentId)/report"
+        let request = ReportPostRequest(reason: reason)
+        return try await apiService.request(endpoint, method: .post, parameters: request)
     }
 }

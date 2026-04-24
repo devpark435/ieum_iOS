@@ -71,9 +71,12 @@ final class LoginViewModel: ObservableObject {
         isLoading = true
         
         appleLoginService.login()
-            .flatMap { [weak self] token -> AnyPublisher<AppLoginResponse, Error> in
+            .flatMap { [weak self] credential -> AnyPublisher<AppLoginResponse, Error> in
                 guard let self = self else { return Empty().eraseToAnyPublisher() }
-                return self.authRepository.loginWithApple(accessToken: token)
+                return self.authRepository.loginWithApple(
+                    identityToken: credential.identityToken,
+                    authorizationCode: credential.authorizationCode
+                )
             }
             .flatMap { [weak self] response -> AnyPublisher<Bool, Error> in
                 guard let self = self else { return Empty().eraseToAnyPublisher() }

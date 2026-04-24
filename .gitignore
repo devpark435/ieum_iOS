@@ -62,3 +62,6 @@ DerivedData/
 Configs/*.xcconfig
 /Debug.xcconfig
 /Release.xcconfig
+
+# Claude Code
+CLAUDE.md

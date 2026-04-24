@@ -72,7 +72,8 @@ final class MyPageMainViewController: UIViewController {
     }
     
     private let settingsButton = UIButton().then {
-        $0.setImage(UIImage(systemName: "gearshape"), for: .normal)
+        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
+        $0.setImage(UIImage(systemName: "gearshape.fill", withConfiguration: config), for: .normal)
         $0.tintColor = Colors.Gray.g950
     }
     
@@ -141,9 +142,9 @@ final class MyPageMainViewController: UIViewController {
         }
         
         settingsButton.snp.makeConstraints {
-            $0.trailing.equalToSuperview().inset(20)
+            $0.trailing.equalToSuperview().inset(16)
             $0.centerY.equalToSuperview()
-            $0.width.height.equalTo(24)
+            $0.width.height.equalTo(36)
         }
         
         // Indicator will be positioned under selected tab button

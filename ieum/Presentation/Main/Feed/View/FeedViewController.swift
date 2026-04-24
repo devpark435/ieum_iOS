@@ -25,28 +25,26 @@ final class FeedViewController: UIViewController {
     
     // MARK: - UI Components
     
-    private let scrollView = UIScrollView().then {
-        $0.showsVerticalScrollIndicator = false
-        $0.backgroundColor = Colors.white
-    }
-    
-    private let contentView = UIView()
-    
-    private let filterChipView = FilterChipView().then {
-        $0.backgroundColor = Colors.white
-    }
-    
-    private let adCardView = AdCardView()
-    
     private let tableView = UITableView().then {
         $0.backgroundColor = Colors.white
         $0.separatorStyle = .none
         $0.showsVerticalScrollIndicator = false
-        $0.isScrollEnabled = false
         $0.register(FeedPostCell.self, forCellReuseIdentifier: FeedPostCell.identifier)
     }
     
+    private let typeFilterChipView = FilterChipView(items: ["전체", "일상 기록", "치료 기록"]).then {
+        $0.backgroundColor = Colors.white
+    }
+    
+    // TODO: 첫 배포 이후 diagnosis 필터 및 광고 카드 복원
+    // private let diagnosisFilterChipView = FilterChipView(items: ["전체", "직장암", "대장암", "간이식", "기타"]).then {
+    //     $0.backgroundColor = Colors.white
+    // }
+    // private let adCardView = AdCardView()
+    
     private let floatingActionButton = FloatingActionButton()
+
+    private let refreshControl = IeumRefreshControl()
     
     // MARK: - Life Cycle
     
@@ -79,61 +77,44 @@ final class FeedViewController: UIViewController {
         let logoItem = UIBarButtonItem(customView: logoImageView)
         navigationItem.leftBarButtonItem = logoItem
         
-        let notificationButton = UIBarButtonItem(
-            image: Images.Icon.notification,
-            style: .plain,
-            target: self,
-            action: #selector(didTapNotification)
-        ).then {
-            $0.tintColor = Colors.Gray.g950
-        }
-        navigationItem.rightBarButtonItem = notificationButton
+        // TODO: 알림 기능 추후 추가 예정
+//        let notificationButton = UIBarButtonItem(
+//            image: Images.Icon.notification,
+//            style: .plain,
+//            target: self,
+//            action: #selector(didTapNotification)
+//        ).then {
+//            $0.tintColor = Colors.Gray.g950
+//        }
+//        navigationItem.rightBarButtonItem = notificationButton
         
         navigationController?.navigationBar.backgroundColor = Colors.white
         navigationController?.navigationBar.isTranslucent = false
+
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = Colors.white
+        appearance.shadowColor = .clear
+        navigationController?.navigationBar.standardAppearance = appearance
+        navigationController?.navigationBar.scrollEdgeAppearance = appearance
+
+        navigationController?.navigationBar.layer.shadowColor = Colors.Slate.s900.cgColor
+        navigationController?.navigationBar.layer.shadowOffset = CGSize(width: 0, height: 4)
+        navigationController?.navigationBar.layer.shadowRadius = 13
+        navigationController?.navigationBar.layer.shadowOpacity = 0.05
+        navigationController?.navigationBar.layer.masksToBounds = false
     }
-    
+
     private func setupUI() {
-        view.addSubview(scrollView)
-        scrollView.addSubview(contentView)
-        
-        contentView.addSubview(filterChipView)
-        contentView.addSubview(adCardView)
-        contentView.addSubview(tableView)
-        
+        view.addSubview(tableView)
         view.addSubview(floatingActionButton)
-        // 버튼이 다른 뷰 위에 표시되도록
         view.bringSubviewToFront(floatingActionButton)
     }
-    
+
     private func setupLayout() {
-        scrollView.snp.makeConstraints {
-            $0.edges.equalToSuperview()
-        }
-        
-        contentView.snp.makeConstraints {
-            $0.edges.equalToSuperview()
-            $0.width.equalToSuperview()
-        }
-        
-        filterChipView.snp.makeConstraints {
-            $0.top.equalToSuperview().offset(16)
-            $0.leading.equalToSuperview().inset(20)
-            $0.trailing.equalToSuperview()
-            $0.height.equalTo(32)
-        }
-        
-        adCardView.snp.makeConstraints {
-            $0.top.equalTo(filterChipView.snp.bottom).offset(16)
-            $0.leading.trailing.equalToSuperview().inset(20)
-            $0.height.equalTo(100)
-        }
-        
         tableView.snp.makeConstraints {
-            $0.top.equalTo(adCardView.snp.bottom).offset(16)
+            $0.top.bottom.equalToSuperview()
             $0.leading.trailing.equalToSuperview().inset(20)
-            $0.height.equalTo(500) // 임시 높이, 실제로는 셀 높이에 따라 동적으로 계산
-            $0.bottom.equalToSuperview().inset(16)
         }
         
         floatingActionButton.snp.makeConstraints {
@@ -145,15 +126,57 @@ final class FeedViewController: UIViewController {
     private func setupTableView() {
         tableView.delegate = self
         tableView.dataSource = self
+        tableView.prefetchDataSource = self
+        tableView.refreshControl = refreshControl
+
+        refreshControl.addTarget(self, action: #selector(handleRefresh), for: .valueChanged)
+
+        setupTableHeaderView()
+    }
+
+    @objc private func handleRefresh() {
+        viewModel.viewDidLoad.send()
+    }
+    
+    private func setupTableHeaderView() {
+        let headerContainer = UIView()
+        
+        headerContainer.addSubview(typeFilterChipView)
+        
+        typeFilterChipView.snp.makeConstraints {
+            $0.top.equalToSuperview().offset(16)
+            $0.leading.trailing.equalToSuperview()
+            $0.height.equalTo(32)
+            $0.bottom.equalToSuperview().inset(16)
+        }
+        
+        headerContainer.layoutIfNeeded()
+        let headerHeight = typeFilterChipView.frame.maxY + 16
+        headerContainer.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: headerHeight)
+        
+        tableView.tableHeaderView = headerContainer
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+
+        guard let headerView = tableView.tableHeaderView else { return }
+        let targetSize = CGSize(width: tableView.bounds.width, height: UIView.layoutFittingCompressedSize.height)
+        let headerSize = headerView.systemLayoutSizeFitting(
+            targetSize,
+            withHorizontalFittingPriority: .required,
+            verticalFittingPriority: .fittingSizeLevel
+        )
+        
+        if headerView.frame.size.height != headerSize.height {
+            headerView.frame.size.height = headerSize.height
+            tableView.tableHeaderView = headerView
+        }
     }
     
     private func bindViewModel() {
-        filterChipView.onFilterSelected = { [weak self] filter in
+        typeFilterChipView.onFilterSelected = { [weak self] filter in
             self?.viewModel.didSelectFilter.send(filter)
-        }
-        
-        adCardView.onLearnMoreTapped = {
-            // TODO: 광고 상세 화면으로 이동
         }
         
         floatingActionButton.onTapped = { [weak self] in
@@ -171,6 +194,13 @@ final class FeedViewController: UIViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] tuple in
                 self?.coordinator?.showComments(postId: tuple.0, postType: tuple.1)
+            }
+            .store(in: &cancellables)
+        
+        viewModel.showReportReasonPicker
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] post in
+                self?.showReportReasonActionSheet(for: post)
             }
             .store(in: &cancellables)
         
@@ -193,22 +223,14 @@ final class FeedViewController: UIViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.tableView.reloadData()
-                self?.updateTableViewHeight()
+                self?.refreshControl.endRefreshing()
             }
             .store(in: &cancellables)
     }
     
-    private func updateTableViewHeight() {
-        tableView.layoutIfNeeded()
-        let totalHeight = tableView.contentSize.height
-        
-        tableView.snp.updateConstraints {
-            $0.height.equalTo(totalHeight)
-        }
-    }
-    
-    @objc private func didTapNotification() {
-    }
+    // TODO: 알림 기능 추후 추가 예정
+//    @objc private func didTapNotification() {
+//    }
     
     private func showDeleteConfirmation(for post: Post) {
         let alert = UIAlertController(
@@ -229,10 +251,17 @@ final class FeedViewController: UIViewController {
         present(alert, animated: true)
     }
     
+    private func showReportReasonActionSheet(for post: Post) {
+        let bottomSheet = ReportReasonBottomSheet()
+        bottomSheet.onSelectReason = { [weak self] reason in
+            self?.viewModel.didSelectReportReason.send((post, reason))
+        }
+        present(bottomSheet, animated: false)
+    }
+    
     private func showWritePostBottomSheet() {
         let bottomSheet = WritePostBottomSheet()
         
-        // 전체 화면을 덮도록 설정 (네비게이션 바 포함)
         bottomSheet.modalPresentationStyle = .overFullScreen
         
         bottomSheet.onSelectTreatmentRecord = { [weak self] in
@@ -247,7 +276,6 @@ final class FeedViewController: UIViewController {
             }
         }
         
-        // 애니메이션 없이 present (모달 내부에서 애니메이션 처리)
         present(bottomSheet, animated: false)
     }
 }
@@ -272,9 +300,6 @@ extension FeedViewController: UITableViewDataSource {
             guard let self = self else { return }
             self.tableView.beginUpdates()
             self.tableView.endUpdates()
-            DispatchQueue.main.async {
-                self.updateTableViewHeight()
-            }
         }
         
         cell.onLikeTapped = { [weak self] in
@@ -285,11 +310,12 @@ extension FeedViewController: UITableViewDataSource {
             self?.viewModel.didTapComment.send(post.id)
         }
         
-        cell.onBookmarkTapped = {
-        }
-        
-        cell.onShareTapped = {
-        }
+        // TODO: 스크랩/공유 기능 추후 추가 예정
+//        cell.onBookmarkTapped = {
+//        }
+//
+//        cell.onShareTapped = {
+//        }
         
         cell.onEditTapped = { [weak self] post in
             self?.viewModel.didTapEdit.send(post)
@@ -319,3 +345,15 @@ extension FeedViewController: UITableViewDelegate {
     }
 }
 
+// MARK: - UITableViewDataSourcePrefetching
+
+extension FeedViewController: UITableViewDataSourcePrefetching {
+    func tableView(_ tableView: UITableView, prefetchRowsAt indexPaths: [IndexPath]) {
+        let lastRow = viewModel.posts.count - 1
+        guard lastRow >= 0 else { return }
+        
+        if indexPaths.contains(where: { $0.row >= lastRow - 3 }) {
+            viewModel.loadMore.send()
+        }
+    }
+}

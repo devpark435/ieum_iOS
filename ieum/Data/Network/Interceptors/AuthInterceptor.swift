@@ -14,7 +14,9 @@ final class AuthInterceptor: RequestInterceptor {
         
         // 토큰이 필요 없는 엔드포인트 예외 처리
         if let urlString = request.url?.absoluteString {
-            if urlString.contains("/auth/oauth/kakao") || urlString.contains("/auth/refresh") {
+            if urlString.contains("/auth/oauth/kakao") ||
+               urlString.contains("/auth/oauth/apple") ||
+               urlString.contains("/auth/refresh") {
                 completion(.success(request))
                 return
             }

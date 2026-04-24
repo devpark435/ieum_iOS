@@ -21,6 +21,13 @@ final class MyProfileViewController: UIViewController {
     
     private let profileHeaderView = ProfileHeaderView()
     
+    private let infoContainerView = UIView().then {
+        $0.backgroundColor = Colors.white
+        $0.layer.cornerRadius = 16
+        $0.layer.borderWidth = 1
+        $0.layer.borderColor = Colors.Gray.g200.cgColor
+    }
+    
     private let infoStackView = UIStackView().then {
         $0.axis = .vertical
         $0.spacing = 0
@@ -57,7 +64,8 @@ final class MyProfileViewController: UIViewController {
         scrollView.addSubview(contentView)
         
         contentView.addSubview(profileHeaderView)
-        contentView.addSubview(infoStackView)
+        contentView.addSubview(infoContainerView)
+        infoContainerView.addSubview(infoStackView)
     }
     
     private func setupLayout() {
@@ -75,10 +83,14 @@ final class MyProfileViewController: UIViewController {
             $0.height.equalTo(100) // Adjust as needed
         }
         
-        infoStackView.snp.makeConstraints {
+        infoContainerView.snp.makeConstraints {
             $0.top.equalTo(profileHeaderView.snp.bottom).offset(20)
             $0.leading.trailing.equalToSuperview().inset(20)
             $0.bottom.equalToSuperview().inset(20)
+        }
+        
+        infoStackView.snp.makeConstraints {
+            $0.edges.equalToSuperview().inset(16)
         }
     }
     
@@ -90,10 +102,14 @@ final class MyProfileViewController: UIViewController {
                 self.updateUI(with: profile)
             }
             .store(in: &cancellables)
+        
+        profileHeaderView.onEditNicknameTapped = { [weak self] in
+            self?.viewModel.didTapEditNickname.send()
+        }
     }
     
     private func updateUI(with profile: UserProfile) {
-        profileHeaderView.configure(nickname: profile.nickname, friendCount: 100) // Mock friend count
+        profileHeaderView.configure(nickname: profile.nickname)
         
         infoStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         
@@ -181,6 +197,8 @@ final class MyProfileViewController: UIViewController {
 
 final class ProfileHeaderView: UIView {
     
+    var onEditNicknameTapped: (() -> Void)?
+    
     private let profileImageView = UIImageView().then {
         $0.backgroundColor = Colors.Gray.g200
         $0.layer.cornerRadius = 32
@@ -192,20 +210,33 @@ final class ProfileHeaderView: UIView {
         $0.textColor = Colors.Gray.g950
     }
     
-    private let friendCountLabel = UILabel().then {
-        $0.font = .ieum(UIFont.IeumFont.Text.bodySmall)
-        $0.textColor = Colors.Gray.g600
+    private let editNicknameChip = UIButton().then {
+        $0.backgroundColor = Colors.Gray.g100
+        $0.layer.cornerRadius = 12
+        
+        var config = UIButton.Configuration.plain()
+        config.image = UIImage(systemName: "pencil")?.withConfiguration(
+            UIImage.SymbolConfiguration(pointSize: 10, weight: .medium)
+        )
+        config.title = "닉네임 변경"
+        config.imagePadding = 3
+        config.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8)
+        config.baseForegroundColor = Colors.Gray.g500
+        $0.configuration = config
+        $0.titleLabel?.font = .ieum(UIFont.IeumFont.Text.bodySmall)
     }
     
-    private let editButton = UIButton().then {
-        $0.setImage(UIImage(systemName: "pencil"), for: .normal)
-        $0.tintColor = Colors.Gray.g950
-    }
+    // TODO: 친구 기능 추후 추가 예정
+//    private let friendCountLabel = UILabel().then {
+//        $0.font = .ieum(UIFont.IeumFont.Text.bodySmall)
+//        $0.textColor = Colors.Gray.g600
+//    }
     
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
         setupLayout()
+        setupActions()
     }
     
     required init?(coder: NSCoder) {
@@ -215,8 +246,7 @@ final class ProfileHeaderView: UIView {
     private func setupUI() {
         addSubview(profileImageView)
         addSubview(nicknameLabel)
-        addSubview(friendCountLabel)
-        addSubview(editButton)
+        addSubview(editNicknameChip)
     }
     
     private func setupLayout() {
@@ -228,24 +258,25 @@ final class ProfileHeaderView: UIView {
         
         nicknameLabel.snp.makeConstraints {
             $0.leading.equalTo(profileImageView.snp.trailing).offset(16)
-            $0.top.equalTo(profileImageView).offset(8)
+            $0.top.equalTo(profileImageView).offset(10)
         }
         
-        editButton.snp.makeConstraints {
-            $0.leading.equalTo(nicknameLabel.snp.trailing).offset(8)
-            $0.centerY.equalTo(nicknameLabel)
-            $0.width.height.equalTo(20)
-        }
-        
-        friendCountLabel.snp.makeConstraints {
+        editNicknameChip.snp.makeConstraints {
             $0.leading.equalTo(nicknameLabel)
-            $0.top.equalTo(nicknameLabel.snp.bottom).offset(4)
+            $0.top.equalTo(nicknameLabel.snp.bottom).offset(6)
         }
     }
     
-    func configure(nickname: String, friendCount: Int) {
+    private func setupActions() {
+        editNicknameChip.addTarget(self, action: #selector(didTapEditNickname), for: .touchUpInside)
+    }
+    
+    @objc private func didTapEditNickname() {
+        onEditNicknameTapped?()
+    }
+    
+    func configure(nickname: String) {
         nicknameLabel.text = nickname
-        friendCountLabel.text = "친구 \(friendCount) >"
     }
 }
 
@@ -258,9 +289,28 @@ final class ProfileInfoSectionView: UIView {
         $0.textColor = Colors.Gray.g950
     }
     
-    private let visibilityBadge = UIImageView().then {
+    private let visibilityChip = UIView().then {
+        $0.backgroundColor = Colors.Gray.g100
+        $0.layer.cornerRadius = 12
+        $0.isHidden = true
+    }
+    
+    private let visibilityChipStack = UIStackView().then {
+        $0.axis = .horizontal
+        $0.spacing = 3
+        $0.alignment = .center
+    }
+    
+    private let visibilityIcon = UIImageView().then {
+        $0.image = UIImage(systemName: "lock.fill")
         $0.contentMode = .scaleAspectFit
         $0.tintColor = Colors.Gray.g400
+    }
+    
+    private let visibilityLabel = UILabel().then {
+        $0.text = "비공개"
+        $0.font = .ieum(UIFont.IeumFont.Text.bodySmall)
+        $0.textColor = Colors.Gray.g400
     }
     
     private let arrowImageView = UIImageView().then {
@@ -269,15 +319,13 @@ final class ProfileInfoSectionView: UIView {
         $0.contentMode = .scaleAspectFit
     }
     
-    private let contentContainer = UIView().then {
-        $0.backgroundColor = Colors.Slate.s100
-        $0.layer.cornerRadius = 12
-    }
+    private let chipFlowView = ChipFlowView()
     
-    private let contentLabel = UILabel().then {
+    private let placeholderLabel = UILabel().then {
         $0.font = .ieum(UIFont.IeumFont.Text.bodySmall)
-        $0.textColor = Colors.Gray.g800
+        $0.textColor = Colors.Gray.g400
         $0.numberOfLines = 0
+        $0.isHidden = true
     }
     
     private let dividerView = UIView().then {
@@ -298,10 +346,13 @@ final class ProfileInfoSectionView: UIView {
     
     private func setupUI() {
         addSubview(titleLabel)
-        addSubview(visibilityBadge)
+        addSubview(visibilityChip)
+        visibilityChip.addSubview(visibilityChipStack)
+        visibilityChipStack.addArrangedSubview(visibilityIcon)
+        visibilityChipStack.addArrangedSubview(visibilityLabel)
         addSubview(arrowImageView)
-        addSubview(contentContainer)
-        contentContainer.addSubview(contentLabel)
+        addSubview(chipFlowView)
+        addSubview(placeholderLabel)
         addSubview(dividerView)
     }
     
@@ -321,10 +372,18 @@ final class ProfileInfoSectionView: UIView {
             $0.leading.equalToSuperview()
         }
         
-        visibilityBadge.snp.makeConstraints {
+        visibilityChip.snp.makeConstraints {
             $0.centerY.equalTo(titleLabel)
             $0.leading.equalTo(titleLabel.snp.trailing).offset(8)
-            $0.width.height.equalTo(16)
+        }
+        
+        visibilityChipStack.snp.makeConstraints {
+            $0.top.bottom.equalToSuperview().inset(4)
+            $0.leading.trailing.equalToSuperview().inset(8)
+        }
+        
+        visibilityIcon.snp.makeConstraints {
+            $0.width.height.equalTo(12)
         }
         
         arrowImageView.snp.makeConstraints {
@@ -333,17 +392,18 @@ final class ProfileInfoSectionView: UIView {
             $0.width.height.equalTo(16)
         }
         
-        contentContainer.snp.makeConstraints {
+        chipFlowView.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(12)
             $0.leading.trailing.equalToSuperview()
-            $0.bottom.equalTo(dividerView.snp.top).offset(-16)
         }
         
-        contentLabel.snp.makeConstraints {
-            $0.edges.equalToSuperview().inset(12)
+        placeholderLabel.snp.makeConstraints {
+            $0.top.equalTo(titleLabel.snp.bottom).offset(12)
+            $0.leading.trailing.equalToSuperview()
         }
         
         dividerView.snp.makeConstraints {
+            $0.top.equalTo(chipFlowView.snp.bottom).offset(16)
             $0.leading.trailing.equalToSuperview()
             $0.bottom.equalToSuperview()
             $0.height.equalTo(1)
@@ -351,15 +411,133 @@ final class ProfileInfoSectionView: UIView {
     }
     
     func configure(content: String, isVisible: Bool, isPlaceholder: Bool) {
-        contentLabel.text = content
-        contentLabel.textColor = isPlaceholder ? Colors.Gray.g400 : Colors.Gray.g800
-        
-        // 비공개면 닫힌 자물쇠, 공개면 숨김
-        if isVisible {
-            visibilityBadge.isHidden = true
+        if isPlaceholder || content.isEmpty {
+            chipFlowView.isHidden = true
+            placeholderLabel.isHidden = false
+            placeholderLabel.text = content
+            
+            dividerView.snp.remakeConstraints {
+                $0.top.equalTo(placeholderLabel.snp.bottom).offset(16)
+                $0.leading.trailing.equalToSuperview()
+                $0.bottom.equalToSuperview()
+                $0.height.equalTo(1)
+            }
         } else {
-            visibilityBadge.isHidden = false
-            visibilityBadge.image = UIImage(systemName: "lock.fill")
+            chipFlowView.isHidden = false
+            placeholderLabel.isHidden = true
+            let chips = content.components(separatedBy: "\n").flatMap {
+                $0.components(separatedBy: "  ")
+            }.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+            chipFlowView.setChips(chips)
+            
+            dividerView.snp.remakeConstraints {
+                $0.top.equalTo(chipFlowView.snp.bottom).offset(16)
+                $0.leading.trailing.equalToSuperview()
+                $0.bottom.equalToSuperview()
+                $0.height.equalTo(1)
+            }
         }
+        
+        visibilityChip.isHidden = isVisible
+    }
+}
+
+// MARK: - ChipFlowView
+
+final class ChipFlowView: UIView {
+    
+    private let spacing: CGFloat = 8
+    private let lineSpacing: CGFloat = 8
+    
+    private var chipLabels: [UIView] = []
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    func setChips(_ texts: [String]) {
+        chipLabels.forEach { $0.removeFromSuperview() }
+        chipLabels.removeAll()
+        
+        for text in texts {
+            let chip = createChipView(text)
+            addSubview(chip)
+            chipLabels.append(chip)
+        }
+        
+        setNeedsLayout()
+        invalidateIntrinsicContentSize()
+    }
+    
+    private func createChipView(_ text: String) -> UIView {
+        let container = UIView().then {
+            $0.backgroundColor = Colors.Slate.s100
+            $0.layer.cornerRadius = 14
+        }
+        
+        let label = UILabel().then {
+            $0.text = text
+            $0.font = .ieum(UIFont.IeumFont.Text.bodySmall)
+            $0.textColor = Colors.Gray.g800
+            $0.textAlignment = .center
+        }
+        
+        container.addSubview(label)
+        label.snp.makeConstraints {
+            $0.top.bottom.equalToSuperview().inset(6)
+            $0.leading.trailing.equalToSuperview().inset(12)
+        }
+        
+        return container
+    }
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        var currentX: CGFloat = 0
+        var currentY: CGFloat = 0
+        let maxWidth = bounds.width
+        
+        for chip in chipLabels {
+            chip.sizeToFit()
+            let chipSize = chip.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
+            
+            if currentX + chipSize.width > maxWidth && currentX > 0 {
+                currentX = 0
+                currentY += chipSize.height + lineSpacing
+            }
+            
+            chip.frame = CGRect(x: currentX, y: currentY, width: chipSize.width, height: chipSize.height)
+            currentX += chipSize.width + spacing
+        }
+        
+        invalidateIntrinsicContentSize()
+    }
+    
+    override var intrinsicContentSize: CGSize {
+        guard !chipLabels.isEmpty else { return CGSize(width: UIView.noIntrinsicMetric, height: 0) }
+        
+        var currentX: CGFloat = 0
+        var currentY: CGFloat = 0
+        let maxWidth = bounds.width > 0 ? bounds.width : UIScreen.main.bounds.width - 40
+        var maxHeight: CGFloat = 0
+        
+        for chip in chipLabels {
+            let chipSize = chip.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
+            
+            if currentX + chipSize.width > maxWidth && currentX > 0 {
+                currentX = 0
+                currentY += chipSize.height + lineSpacing
+            }
+            
+            maxHeight = max(maxHeight, currentY + chipSize.height)
+            currentX += chipSize.width + spacing
+        }
+        
+        return CGSize(width: UIView.noIntrinsicMetric, height: maxHeight)
     }
 }
