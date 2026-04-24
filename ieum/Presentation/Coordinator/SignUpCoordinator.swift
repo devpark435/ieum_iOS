@@ -15,9 +15,18 @@ final class SignUpCoordinator: Coordinator {
     }
     
     func start() {
-        showStep1()
+        showConsent()
     }
-    
+
+    func showConsent() {
+        let viewController = ConsentViewController()
+        viewController.onConsented = { [weak self] in
+            self?.showStep1()
+        }
+        navigationController.setViewControllers([viewController], animated: false)
+        navigationController.setNavigationBarHidden(true, animated: false)
+    }
+
     func showStep1() {
         let viewController = SignUpStep1ViewController()
         viewController.coordinator = self
