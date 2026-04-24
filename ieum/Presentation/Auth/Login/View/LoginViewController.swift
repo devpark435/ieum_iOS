@@ -37,24 +37,9 @@ class LoginViewController: UIViewController {
         $0.titleLabel?.font = .ieum(UIFont.IeumFont.Btn.large)
     }
     
-    // Apple 로그인 버튼 (커스텀 버튼으로 변경하여 카카오 버튼과 스타일 통일)
-    private let appleLoginButton = UIButton().then {
-        var config = UIButton.Configuration.filled()
-        config.baseBackgroundColor = .black
-        config.baseForegroundColor = .white
-        config.image = UIImage(systemName: "apple.logo")
-        config.imagePadding = 10 // 이미지와 텍스트 사이 간격
-        config.imagePlacement = .leading
-        
-        // 폰트 설정
-        var container = AttributeContainer()
-        container.font = .ieum(UIFont.IeumFont.Btn.large)
-        config.attributedTitle = AttributedString("Apple로 계속하기", attributes: container)
-        
-        config.background.cornerRadius = 16
-        config.cornerStyle = .fixed
-        
-        $0.configuration = config
+    private let appleLoginButton = ASAuthorizationAppleIDButton(type: .continue, style: .black).then {
+        $0.layer.cornerRadius = 16
+        $0.layer.masksToBounds = true
     }
     
     // 버튼들을 담을 스택뷰
