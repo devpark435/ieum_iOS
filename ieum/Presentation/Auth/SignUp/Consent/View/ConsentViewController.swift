@@ -9,6 +9,8 @@ final class ConsentViewController: UIViewController {
 
     var onConsented: (() -> Void)?
 
+    private var isUpdatingFromAllAgree = false
+
     private var isTermsAgreed = false {
         didSet { updateAllAgreedState(); updateNextButton() }
     }
@@ -120,10 +122,12 @@ final class ConsentViewController: UIViewController {
     private func setupActions() {
         allAgreeCheckbox.onCheckChanged = { [weak self] isChecked in
             guard let self else { return }
+            self.isUpdatingFromAllAgree = true
             self.isTermsAgreed = isChecked
             self.isPrivacyAgreed = isChecked
             self.termsRow.setChecked(isChecked)
             self.privacyRow.setChecked(isChecked)
+            self.isUpdatingFromAllAgree = false
         }
 
         termsRow.onCheckChanged = { [weak self] isChecked in
@@ -152,6 +156,7 @@ final class ConsentViewController: UIViewController {
     // MARK: - Logic
 
     private func updateAllAgreedState() {
+        guard !isUpdatingFromAllAgree else { return }
         let allAgreed = isTermsAgreed && isPrivacyAgreed
         if allAgreeCheckbox.isChecked != allAgreed {
             allAgreeCheckbox.isChecked = allAgreed
