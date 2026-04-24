@@ -30,6 +30,10 @@
 		<string>kakaokompassauth</string>
 		<string>kakaolink</string>
 	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
 	<key>UIUserInterfaceStyle</key>
 	<string>Light</string>
 	<key>UIAppFonts</key>
