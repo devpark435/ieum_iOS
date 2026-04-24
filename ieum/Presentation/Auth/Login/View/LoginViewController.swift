@@ -38,7 +38,8 @@ class LoginViewController: UIViewController {
     }
     
     private let appleLoginButton = ASAuthorizationAppleIDButton(type: .continue, style: .black).then {
-        $0.cornerRadius = 16
+        $0.layer.cornerRadius = 16
+        $0.layer.masksToBounds = true
     }
     
     // 버튼들을 담을 스택뷰
