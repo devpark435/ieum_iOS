@@ -13,6 +13,11 @@ final class AppCoordinator: Coordinator {
     /// 개발 모드: true로 설정하면 회원가입 과정을 건너뛰고 바로 메인 화면으로 이동
     /// 릴리즈 빌드 전에 반드시 false로 변경해야 합니다.
     private let isDevelopmentMode: Bool = false
+
+    #if DEBUG
+    /// 동의 화면 디버그 모드: true로 설정하면 앱 시작 시 바로 동의 화면으로 이동
+    private let isConsentDebugMode: Bool = false
+    #endif
     
     init(window: UIWindow, authRepository: AuthRepository = AuthRepositoryImpl()) {
         self.window = window
@@ -27,7 +32,13 @@ final class AppCoordinator: Coordinator {
         // 로그아웃 알림 관찰
         observeLogout()
         
-        // 개발 모드인 경우 바로 메인 화면으로 이동
+        #if DEBUG
+        if isConsentDebugMode {
+            showConsentDebug()
+            return
+        }
+        #endif
+
         if isDevelopmentMode {
             showMain()
         } else {
@@ -54,6 +65,16 @@ final class AppCoordinator: Coordinator {
         showAuth()
     }
     
+    #if DEBUG
+    private func showConsentDebug() {
+        let signUpNav = UINavigationController()
+        let coordinator = SignUpCoordinator(navigationController: signUpNav)
+        addChild(coordinator)
+        coordinator.start()
+        window.rootViewController = signUpNav
+    }
+    #endif
+
     private func showSplash() {
         let coordinator = SplashCoordinator(navigationController: navigationController)
         coordinator.delegate = self
