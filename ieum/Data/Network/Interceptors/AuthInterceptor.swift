@@ -59,6 +59,7 @@ final class AuthInterceptor: RequestInterceptor {
                     completion(.retry)
                 case .failure:
                     self?.tokenManager.clearTokens()
+                    NotificationCenter.default.post(name: .userDidLogout, object: nil)
                     completion(.doNotRetry)
                 }
             }
