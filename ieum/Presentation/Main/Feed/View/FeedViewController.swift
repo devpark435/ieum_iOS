@@ -43,6 +43,8 @@ final class FeedViewController: UIViewController {
     // private let adCardView = AdCardView()
     
     private let floatingActionButton = FloatingActionButton()
+
+    private let refreshControl = IeumRefreshControl()
     
     // MARK: - Life Cycle
     
@@ -88,14 +90,27 @@ final class FeedViewController: UIViewController {
         
         navigationController?.navigationBar.backgroundColor = Colors.white
         navigationController?.navigationBar.isTranslucent = false
+
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = Colors.white
+        appearance.shadowColor = .clear
+        navigationController?.navigationBar.standardAppearance = appearance
+        navigationController?.navigationBar.scrollEdgeAppearance = appearance
+
+        navigationController?.navigationBar.layer.shadowColor = Colors.Slate.s900.cgColor
+        navigationController?.navigationBar.layer.shadowOffset = CGSize(width: 0, height: 4)
+        navigationController?.navigationBar.layer.shadowRadius = 13
+        navigationController?.navigationBar.layer.shadowOpacity = 0.05
+        navigationController?.navigationBar.layer.masksToBounds = false
     }
-    
+
     private func setupUI() {
         view.addSubview(tableView)
         view.addSubview(floatingActionButton)
         view.bringSubviewToFront(floatingActionButton)
     }
-    
+
     private func setupLayout() {
         tableView.snp.makeConstraints {
             $0.top.bottom.equalToSuperview()
@@ -112,8 +127,15 @@ final class FeedViewController: UIViewController {
         tableView.delegate = self
         tableView.dataSource = self
         tableView.prefetchDataSource = self
-        
+        tableView.refreshControl = refreshControl
+
+        refreshControl.addTarget(self, action: #selector(handleRefresh), for: .valueChanged)
+
         setupTableHeaderView()
+    }
+
+    @objc private func handleRefresh() {
+        viewModel.viewDidLoad.send()
     }
     
     private func setupTableHeaderView() {
@@ -137,7 +159,7 @@ final class FeedViewController: UIViewController {
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        
+
         guard let headerView = tableView.tableHeaderView else { return }
         let targetSize = CGSize(width: tableView.bounds.width, height: UIView.layoutFittingCompressedSize.height)
         let headerSize = headerView.systemLayoutSizeFitting(
@@ -201,6 +223,7 @@ final class FeedViewController: UIViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.tableView.reloadData()
+                self?.refreshControl.endRefreshing()
             }
             .store(in: &cancellables)
     }
