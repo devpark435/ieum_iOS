@@ -9,16 +9,6 @@ final class ConsentViewController: UIViewController {
 
     var onConsented: (() -> Void)?
 
-    private var isUpdatingFromAllAgree = false
-
-    private var isTermsAgreed = false {
-        didSet { updateAllAgreedState(); updateNextButton() }
-    }
-    private var isPrivacyAgreed = false {
-        didSet { updateAllAgreedState(); updateNextButton() }
-    }
-
-    private let termsURL = URL(string: "https://southern-dash-bc7.notion.site/2f7a0853c74280b7b6a1d7a0172cbdac")!
     private let privacyURL = URL(string: "https://southern-dash-bc7.notion.site/2f7a0853c74280b7b6a1d7a0172cbdac")!
 
     // MARK: - UI Components
@@ -29,19 +19,12 @@ final class ConsentViewController: UIViewController {
     }
 
     private let titleLabel = UILabel().then {
-        $0.text = "서비스를 이용하기 위해\n아래 약관에 동의해 주세요"
+        $0.text = "서비스를 이용하기 위해\n개인정보 처리방침에 동의해 주세요"
         $0.font = .ieum(UIFont.IeumFont.Heading.h1)
         $0.textColor = Colors.Gray.g950
         $0.numberOfLines = 0
     }
 
-    private let allAgreeCheckbox = IeumCheckbox(title: "전체 동의")
-
-    private let divider = UIView().then {
-        $0.backgroundColor = Colors.Slate.s200
-    }
-
-    private let termsRow = ConsentRowView(title: "(필수) 이용약관 동의")
     private let privacyRow = ConsentRowView(title: "(필수) 개인정보 처리방침 동의")
 
     private let nextButton = IeumButton(title: "다음").then {
@@ -65,9 +48,6 @@ final class ConsentViewController: UIViewController {
     private func setupUI() {
         view.addSubview(logoImageView)
         view.addSubview(titleLabel)
-        view.addSubview(allAgreeCheckbox)
-        view.addSubview(divider)
-        view.addSubview(termsRow)
         view.addSubview(privacyRow)
         view.addSubview(nextButton)
     }
@@ -85,28 +65,8 @@ final class ConsentViewController: UIViewController {
             $0.trailing.equalToSuperview().inset(20)
         }
 
-        allAgreeCheckbox.snp.makeConstraints {
-            $0.top.equalTo(titleLabel.snp.bottom).offset(48)
-            $0.leading.equalToSuperview().offset(20)
-            $0.trailing.equalToSuperview().inset(20)
-        }
-
-        divider.snp.makeConstraints {
-            $0.top.equalTo(allAgreeCheckbox.snp.bottom).offset(16)
-            $0.leading.equalToSuperview().offset(20)
-            $0.trailing.equalToSuperview().inset(20)
-            $0.height.equalTo(1)
-        }
-
-        termsRow.snp.makeConstraints {
-            $0.top.equalTo(divider.snp.bottom).offset(16)
-            $0.leading.equalToSuperview().offset(20)
-            $0.trailing.equalToSuperview().inset(20)
-            $0.height.equalTo(44)
-        }
-
         privacyRow.snp.makeConstraints {
-            $0.top.equalTo(termsRow.snp.bottom).offset(12)
+            $0.top.equalTo(titleLabel.snp.bottom).offset(48)
             $0.leading.equalToSuperview().offset(20)
             $0.trailing.equalToSuperview().inset(20)
             $0.height.equalTo(44)
@@ -120,28 +80,8 @@ final class ConsentViewController: UIViewController {
     }
 
     private func setupActions() {
-        allAgreeCheckbox.onCheckChanged = { [weak self] isChecked in
-            guard let self else { return }
-            self.isUpdatingFromAllAgree = true
-            self.isTermsAgreed = isChecked
-            self.isPrivacyAgreed = isChecked
-            self.termsRow.setChecked(isChecked)
-            self.privacyRow.setChecked(isChecked)
-            self.isUpdatingFromAllAgree = false
-        }
-
-        termsRow.onCheckChanged = { [weak self] isChecked in
-            self?.isTermsAgreed = isChecked
-        }
-
         privacyRow.onCheckChanged = { [weak self] isChecked in
-            self?.isPrivacyAgreed = isChecked
-        }
-
-        termsRow.onViewTapped = { [weak self] in
-            guard let self else { return }
-            let safari = SFSafariViewController(url: self.termsURL)
-            self.present(safari, animated: true)
+            self?.nextButton.isEnabled = isChecked
         }
 
         privacyRow.onViewTapped = { [weak self] in
@@ -151,20 +91,6 @@ final class ConsentViewController: UIViewController {
         }
 
         nextButton.addTarget(self, action: #selector(didTapNext), for: .touchUpInside)
-    }
-
-    // MARK: - Logic
-
-    private func updateAllAgreedState() {
-        guard !isUpdatingFromAllAgree else { return }
-        let allAgreed = isTermsAgreed && isPrivacyAgreed
-        if allAgreeCheckbox.isChecked != allAgreed {
-            allAgreeCheckbox.isChecked = allAgreed
-        }
-    }
-
-    private func updateNextButton() {
-        nextButton.isEnabled = isTermsAgreed && isPrivacyAgreed
     }
 
     // MARK: - Actions
@@ -184,14 +110,14 @@ final class ConsentRowView: UIView {
     private let checkbox = IeumCheckbox()
 
     private let titleLabel = UILabel().then {
-        $0.font = .ieum(UIFont.IeumFont.Text.bodyS)
+        $0.font = .ieum(UIFont.IeumFont.Text.bodySmall)
         $0.textColor = Colors.Gray.g700
     }
 
     private let viewButton = UIButton().then {
         $0.setTitle("보기", for: .normal)
         $0.setTitleColor(Colors.Gray.g400, for: .normal)
-        $0.titleLabel?.font = .ieum(UIFont.IeumFont.Text.bodyS)
+        $0.titleLabel?.font = .ieum(UIFont.IeumFont.Text.bodySmall)
     }
 
     init(title: String) {
@@ -230,7 +156,7 @@ final class ConsentRowView: UIView {
         checkbox.onCheckChanged = { [weak self] isChecked in
             self?.onCheckChanged?(isChecked)
         }
-        viewButton.addTarget(self, action: #selector(didTapView), for: .touchUpInside)
+        viewButton.addTarget(self, action: #selector(didTapView), for: UIControl.Event.touchUpInside)
     }
 
     func setChecked(_ checked: Bool) {
