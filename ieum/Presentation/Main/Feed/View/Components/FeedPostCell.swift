@@ -18,6 +18,7 @@ final class FeedPostCell: UITableViewCell {
     var onEditTapped: ((Post) -> Void)?
     var onDeleteTapped: ((Post) -> Void)?
     var onReportTapped: ((Post) -> Void)?
+    var onBlockTapped: ((Post) -> Void)?
     var onSeeMoreTapped: (() -> Void)?
     
     private var currentPost: Post?
@@ -722,8 +723,13 @@ final class FeedPostCell: UITableViewCell {
                 guard let self = self, let post = self.currentPost else { return }
                 self.onReportTapped?(post)
             }
-            
-            menuButton.menu = UIMenu(title: "", children: [reportAction])
+
+            let blockAction = UIAction(title: "차단하기", image: UIImage(systemName: "person.fill.xmark"), attributes: .destructive) { [weak self] _ in
+                guard let self = self, let post = self.currentPost else { return }
+                self.onBlockTapped?(post)
+            }
+
+            menuButton.menu = UIMenu(title: "", children: [reportAction, blockAction])
             menuButton.showsMenuAsPrimaryAction = true
         }
     }

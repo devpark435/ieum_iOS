@@ -251,6 +251,19 @@ final class FeedViewController: UIViewController {
         present(alert, animated: true)
     }
     
+    private func showBlockConfirmation(for post: Post) {
+        let alert = UIAlertController(
+            title: "사용자 차단",
+            message: "\(post.userNickname)님을 차단하면 해당 유저의 게시물이 더 이상 표시되지 않습니다.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "차단", style: .destructive) { [weak self] _ in
+            self?.viewModel.didTapBlock.send(post)
+        })
+        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+        present(alert, animated: true)
+    }
+
     private func showReportReasonActionSheet(for post: Post) {
         let bottomSheet = ReportReasonBottomSheet()
         bottomSheet.onSelectReason = { [weak self] reason in
@@ -328,7 +341,11 @@ extension FeedViewController: UITableViewDataSource {
         cell.onReportTapped = { [weak self] post in
             self?.viewModel.didTapReport.send(post)
         }
-        
+
+        cell.onBlockTapped = { [weak self] post in
+            self?.showBlockConfirmation(for: post)
+        }
+
         return cell
     }
 }

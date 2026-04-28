@@ -14,6 +14,7 @@ final class FeedViewModel: ObservableObject {
     let didTapDelete = PassthroughSubject<Post, Never>()
     let didTapReport = PassthroughSubject<Post, Never>()
     let didSelectReportReason = PassthroughSubject<(Post, ReportReason), Never>()
+    let didTapBlock = PassthroughSubject<Post, Never>()
     let loadMore = PassthroughSubject<Void, Never>()
     
     // Outputs
@@ -103,6 +104,12 @@ final class FeedViewModel: ObservableObject {
                 self?.reportPost(post: post, reason: reason)
             }
             .store(in: &cancellables)
+
+        didTapBlock
+            .sink { [weak self] post in
+                self?.blockUser(post: post)
+            }
+            .store(in: &cancellables)
             
         loadMore
             .sink { [weak self] in
@@ -146,13 +153,15 @@ final class FeedViewModel: ObservableObject {
                 }
             } receiveValue: { [weak self] response in
                 guard let self = self else { return }
-                
+                let blockedIds = BlockedUserManager.shared.blockedUserIds
+                let filtered = response.posts.filter { !blockedIds.contains($0.userId) }
+
                 if self.currentPage == 1 {
-                    self.posts = response.posts
+                    self.posts = filtered
                 } else {
-                    self.posts.append(contentsOf: response.posts)
+                    self.posts.append(contentsOf: filtered)
                 }
-                
+
                 self.isLastPage = self.currentPage >= response.pagination.totalPages
             }
             .store(in: &cancellables)
@@ -263,6 +272,14 @@ final class FeedViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Block
+
+    private func blockUser(post: Post) {
+        BlockedUserManager.shared.block(userId: post.userId)
+        posts.removeAll { $0.userId == post.userId }
+        Toast.show(message: "\(post.userNickname)님을 차단했습니다")
+    }
+
     private static func reportErrorMessage(from error: Error) -> String {
         guard let afError = error as? AFError,
               case .responseValidationFailed(let reason) = afError,
