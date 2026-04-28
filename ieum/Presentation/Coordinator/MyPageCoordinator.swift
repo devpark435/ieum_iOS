@@ -303,6 +303,12 @@ final class MyPageCoordinator: Coordinator {
 // MARK: - SettingsViewControllerDelegate
 
 extension MyPageCoordinator: SettingsViewControllerDelegate {
+    func didTapBlockedUsers() {
+        let blockedVC = BlockedUsersViewController()
+        blockedVC.hidesBottomBarWhenPushed = true
+        navigationController.pushViewController(blockedVC, animated: true)
+    }
+
     func didTapPrivacyPolicy() {
         let privacyVC = PrivacyPolicyViewController()
         privacyVC.hidesBottomBarWhenPushed = true

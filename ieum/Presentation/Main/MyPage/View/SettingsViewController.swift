@@ -3,6 +3,7 @@ import SnapKit
 import Then
 
 protocol SettingsViewControllerDelegate: AnyObject {
+    func didTapBlockedUsers()
     func didTapPrivacyPolicy()
     func didTapDeleteAccount()
     func didTapLogout()
@@ -18,18 +19,20 @@ final class SettingsViewController: UIViewController {
     }
     
     enum SettingsItem {
+        case blockedUsers     // 차단 목록
         case privacyPolicy    // 개인정보 처리방침
         case deleteAccount    // 회원탈퇴
         case logout           // 로그아웃
-        
+
         var title: String {
             switch self {
+            case .blockedUsers: return "차단 목록"
             case .privacyPolicy: return "개인정보 처리방침"
             case .deleteAccount: return "회원탈퇴"
             case .logout: return "로그아웃"
             }
         }
-        
+
         var textColor: UIColor {
             switch self {
             case .deleteAccount, .logout: return UIColor.systemRed
@@ -42,7 +45,7 @@ final class SettingsViewController: UIViewController {
     
     weak var delegate: SettingsViewControllerDelegate?
     
-    private let infoItems: [SettingsItem] = [.privacyPolicy]
+    private let infoItems: [SettingsItem] = [.blockedUsers, .privacyPolicy]
     private let accountItems: [SettingsItem] = [.deleteAccount, .logout]
     
     // MARK: - UI Components
@@ -116,6 +119,8 @@ final class SettingsViewController: UIViewController {
     
     private func handleItemSelection(_ item: SettingsItem) {
         switch item {
+        case .blockedUsers:
+            delegate?.didTapBlockedUsers()
         case .privacyPolicy:
             delegate?.didTapPrivacyPolicy()
         case .deleteAccount:
@@ -185,7 +190,7 @@ extension SettingsViewController: UITableViewDataSource {
         cell.contentConfiguration = content
         cell.backgroundColor = Colors.white
         cell.selectionStyle = .none
-        cell.accessoryType = item.title == "개인정보 처리방침" ? .disclosureIndicator : .none
+        cell.accessoryType = (item == .privacyPolicy || item == .blockedUsers) ? .disclosureIndicator : .none
         
         return cell
     }

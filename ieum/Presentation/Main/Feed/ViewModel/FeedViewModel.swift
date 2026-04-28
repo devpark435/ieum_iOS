@@ -29,6 +29,7 @@ final class FeedViewModel: ObservableObject {
     let navigateToComments = PassthroughSubject<(Int, PostType), Never>()
     let navigateToEdit = PassthroughSubject<Post, Never>()
     let showReportReasonPicker = PassthroughSubject<Post, Never>()
+    let showBlockAfterReport = PassthroughSubject<Post, Never>()
     
     private let feedRepository: FeedRepository
     private let authRepository: AuthRepository
@@ -264,7 +265,7 @@ final class FeedViewModel: ObservableObject {
                     reason: reason.rawValue
                 )
                 posts.removeAll { $0.id == post.id && $0.type == post.type }
-                Toast.show(message: "신고가 접수되었습니다")
+                showBlockAfterReport.send(post)
             } catch {
                 let message = Self.reportErrorMessage(from: error)
                 Toast.show(message: message)
@@ -275,7 +276,7 @@ final class FeedViewModel: ObservableObject {
     // MARK: - Block
 
     private func blockUser(post: Post) {
-        BlockedUserManager.shared.block(userId: post.userId)
+        BlockedUserManager.shared.block(userId: post.userId, nickname: post.userNickname)
         posts.removeAll { $0.userId == post.userId }
         Toast.show(message: "\(post.userNickname)님을 차단했습니다")
     }

@@ -203,6 +203,13 @@ final class FeedViewController: UIViewController {
                 self?.showReportReasonActionSheet(for: post)
             }
             .store(in: &cancellables)
+
+        viewModel.showBlockAfterReport
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] post in
+                self?.showBlockAfterReportAlert(for: post)
+            }
+            .store(in: &cancellables)
         
         viewModel.navigateToEdit
             .receive(on: DispatchQueue.main)
@@ -251,6 +258,19 @@ final class FeedViewController: UIViewController {
         present(alert, animated: true)
     }
     
+    private func showBlockAfterReportAlert(for post: Post) {
+        let alert = UIAlertController(
+            title: "신고 완료",
+            message: "신고가 접수되었습니다.\n\(post.userNickname)님의 게시물을 차단할까요?",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "차단하기", style: .destructive) { [weak self] _ in
+            self?.viewModel.didTapBlock.send(post)
+        })
+        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+        present(alert, animated: true)
+    }
+
     private func showBlockConfirmation(for post: Post) {
         let alert = UIAlertController(
             title: "사용자 차단",
