@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-CONFIGS_DIR="$CI_WORKSPACE/Configs"
+CONFIGS_DIR="$CI_PRIMARY_REPOSITORY_PATH/Configs"
 mkdir -p "$CONFIGS_DIR"
 
 # SLASH trick: xcconfig treats // as comment, so split https://
