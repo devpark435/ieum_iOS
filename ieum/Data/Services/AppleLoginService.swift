@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import UIKit
 import AuthenticationServices
 
 enum AppleLoginError: Error {
@@ -15,10 +16,12 @@ struct AppleLoginCredential {
 
 final class AppleLoginService: NSObject {
     private var loginSubject: PassthroughSubject<AppleLoginCredential, Error>?
+    private weak var presentationAnchor: UIWindow?
 
-    func login() -> AnyPublisher<AppleLoginCredential, Error> {
+    func login(presentationAnchor: UIWindow? = nil) -> AnyPublisher<AppleLoginCredential, Error> {
         let subject = PassthroughSubject<AppleLoginCredential, Error>()
         self.loginSubject = subject
+        self.presentationAnchor = presentationAnchor
 
         let provider = ASAuthorizationAppleIDProvider()
         let request = provider.createRequest()
@@ -65,9 +68,24 @@ extension AppleLoginService: ASAuthorizationControllerDelegate {
 
 extension AppleLoginService: ASAuthorizationControllerPresentationContextProviding {
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        return UIApplication.shared.connectedScenes
+        if let anchor = presentationAnchor {
+            return anchor
+        }
+
+        let activeScenes = UIApplication.shared.connectedScenes
+            .filter { $0.activationState == .foregroundActive }
             .compactMap { $0 as? UIWindowScene }
-            .flatMap { $0.windows }
-            .first { $0.isKeyWindow } ?? UIWindow()
+
+        let windows = activeScenes.flatMap { $0.windows }
+
+        if let keyWindow = windows.first(where: { $0.isKeyWindow }) {
+            return keyWindow
+        }
+
+        if let anyWindow = windows.first(where: { $0.rootViewController != nil }) {
+            return anyWindow
+        }
+
+        return ASPresentationAnchor()
     }
 }
