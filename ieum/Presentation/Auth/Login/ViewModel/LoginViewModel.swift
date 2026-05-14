@@ -1,10 +1,11 @@
 import Foundation
 import Combine
+import UIKit
 
 final class LoginViewModel: ObservableObject {
     // Inputs
     let didTapKakaoLogin = PassthroughSubject<Void, Never>()
-    let didTapAppleLogin = PassthroughSubject<Void, Never>()
+    let didTapAppleLogin = PassthroughSubject<UIWindow?, Never>()
     
     // Outputs
     @Published var isLoading = false
@@ -37,8 +38,8 @@ final class LoginViewModel: ObservableObject {
             .store(in: &cancellables)
         
         didTapAppleLogin
-            .sink { [weak self] in
-                self?.loginWithApple()
+            .sink { [weak self] anchor in
+                self?.loginWithApple(presentationAnchor: anchor)
             }
             .store(in: &cancellables)
     }
@@ -67,10 +68,10 @@ final class LoginViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
-    private func loginWithApple() {
+    private func loginWithApple(presentationAnchor: UIWindow?) {
         isLoading = true
-        
-        appleLoginService.login()
+
+        appleLoginService.login(presentationAnchor: presentationAnchor)
             .flatMap { [weak self] credential -> AnyPublisher<AppLoginResponse, Error> in
                 guard let self = self else { return Empty().eraseToAnyPublisher() }
                 return self.authRepository.loginWithApple(

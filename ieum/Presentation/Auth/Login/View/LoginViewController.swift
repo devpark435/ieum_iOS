@@ -152,6 +152,6 @@ class LoginViewController: UIViewController {
     }
     
     @objc private func didTapAppleLogin() {
-        viewModel.didTapAppleLogin.send()
+        viewModel.didTapAppleLogin.send(view.window)
     }
 }
