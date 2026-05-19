@@ -17,6 +17,7 @@ struct AppleLoginCredential {
 final class AppleLoginService: NSObject {
     private var loginSubject: PassthroughSubject<AppleLoginCredential, Error>?
     private weak var presentationAnchor: UIWindow?
+    private var authorizationController: ASAuthorizationController?
 
     func login(presentationAnchor: UIWindow? = nil) -> AnyPublisher<AppleLoginCredential, Error> {
         let subject = PassthroughSubject<AppleLoginCredential, Error>()
@@ -30,6 +31,7 @@ final class AppleLoginService: NSObject {
         let controller = ASAuthorizationController(authorizationRequests: [request])
         controller.delegate = self
         controller.presentationContextProvider = self
+        self.authorizationController = controller
         controller.performRequests()
 
         return subject.eraseToAnyPublisher()
