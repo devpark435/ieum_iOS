@@ -140,7 +140,16 @@ class LoginViewController: UIViewController {
             .sink { [weak self] isLoading in
                 self?.kakaoLoginButton.isEnabled = !isLoading
                 self?.appleLoginButton.isEnabled = !isLoading
-                // 필요하다면 로딩 인디케이터 표시
+            }
+            .store(in: &cancellables)
+
+        viewModel.$error
+            .compactMap { $0 }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] error in
+                let alert = UIAlertController(title: "로그인 실패", message: error.localizedDescription, preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "확인", style: .default))
+                self?.present(alert, animated: true)
             }
             .store(in: &cancellables)
     }
