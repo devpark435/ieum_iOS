@@ -6,7 +6,9 @@ final class AuthInterceptor: RequestInterceptor {
     private let baseURL: String
     
     init() {
-        self.baseURL = Bundle.main.object(forInfoDictionaryKey: "BaseURL") as? String ?? ""
+        let raw = Bundle.main.object(forInfoDictionaryKey: "BaseURL") as? String ?? ""
+        // endpoint가 "/"로 시작하므로 trailing slash 제거해 "//" 중복 방지
+        self.baseURL = raw.replacingOccurrences(of: "/+$", with: "", options: .regularExpression)
     }
     
     func adapt(_ urlRequest: URLRequest, for session: Session, completion: @escaping (Result<URLRequest, Error>) -> Void) {
