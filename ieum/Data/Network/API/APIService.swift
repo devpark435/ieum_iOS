@@ -14,7 +14,9 @@ final class APIService {
     }
     
     var baseURL: String {
-        return Bundle.main.object(forInfoDictionaryKey: "BaseURL") as? String ?? ""
+        let raw = Bundle.main.object(forInfoDictionaryKey: "BaseURL") as? String ?? ""
+        // endpoint가 "/"로 시작하므로 trailing slash 제거해 "//" 중복 방지
+        return raw.replacingOccurrences(of: "/+$", with: "", options: .regularExpression)
     }
     
     /// 공통 비동기 요청 메서드 (Concurrency + Logging) - 파라미터 있음
